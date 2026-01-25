@@ -43,7 +43,7 @@ export function PnLChart({ data, loading }: PnLChartProps) {
                 borderRadius: '8px',
                 color: 'white'
               }}
-              formatter={(value: number) => [String((value * 100).toFixed(2)) + '%', 'Cumulative PnL']}
+              formatter={(value) => [String(((value as number) * 100).toFixed(2)) + '%', 'Cumulative PnL']}
             />
             <Area
               type="monotone"
