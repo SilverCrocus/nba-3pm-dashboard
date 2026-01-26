@@ -9,7 +9,8 @@ export function useTodaysSignals() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    // Use ET timezone (America/New_York) since NBA games/signals use ET dates
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 
     supabase
       .from('paper_trades')
