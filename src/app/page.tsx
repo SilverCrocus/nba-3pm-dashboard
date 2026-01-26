@@ -11,7 +11,7 @@ export default function Dashboard() {
   const { signals, loading: signalsLoading } = useTodaysSignals();
   const { stats, loading: statsLoading } = usePerformanceStats();
   const { dailyData, loading: pnlLoading } = useDailyPnL();
-  const { results, loading: resultsLoading } = useRecentResults();
+  const { results, loading: resultsLoading } = useRecentResults(50);
 
   return (
     <div className="flex min-h-screen">
