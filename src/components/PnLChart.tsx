@@ -14,9 +14,9 @@ export function PnLChart({ data, loading }: PnLChartProps) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-green-600/80 to-green-800/80 rounded-3xl p-6">
-      <h3 className="text-xl font-semibold text-white mb-4">PnL Over Time</h3>
-      <div className="h-48">
+    <div className="bg-gradient-to-br from-green-600/80 to-green-800/80 rounded-2xl md:rounded-3xl p-4 md:p-6">
+      <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">PnL Over Time</h3>
+      <div className="h-40 md:h-48">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>

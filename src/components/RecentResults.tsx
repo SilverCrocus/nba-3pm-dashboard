@@ -51,7 +51,7 @@ function aggregateByDay(results: PaperTrade[]): DailyAggregate[] {
 export function RecentResults({ results, loading }: RecentResultsProps) {
   if (loading) {
     return (
-      <div className="rounded-3xl p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
+      <div className="rounded-2xl md:rounded-3xl p-4 md:p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
         <div className="text-slate-700/50">Loading results...</div>
       </div>
     );
@@ -61,20 +61,19 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
   const totalWins = dailyData.reduce((sum, d) => sum + d.wins, 0);
   const totalLosses = dailyData.reduce((sum, d) => sum + d.losses, 0);
   const totalBets = totalWins + totalLosses;
-  const overallWinRate = totalBets > 0 ? ((totalWins / totalBets) * 100).toFixed(1) : '0';
   const totalProfit = dailyData.reduce((sum, d) => sum + d.profit, 0) * 100;
 
   return (
-    <div className="rounded-3xl p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
+    <div className="rounded-2xl md:rounded-3xl p-4 md:p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 md:mb-6">
         <div>
-          <h3 className="text-xl font-semibold text-slate-900">Daily Performance</h3>
-          <p className="text-slate-600 text-sm">Last {dailyData.length} days</p>
+          <h3 className="text-lg md:text-xl font-semibold text-slate-900">Daily Performance</h3>
+          <p className="text-slate-600 text-xs md:text-sm">Last {dailyData.length} days</p>
         </div>
-        <div className="flex items-center gap-4">
-          {/* Legend */}
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 md:gap-4">
+          {/* Legend - hidden on small mobile */}
+          <div className="hidden sm:flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <span className="text-slate-700 text-sm">&gt;50%</span>
@@ -85,8 +84,8 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
             </div>
           </div>
           {/* Overall stat badge */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5">
-            <span className={`text-sm font-medium ${totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+          <div className="bg-white/60 backdrop-blur-sm rounded-full px-2.5 md:px-3 py-1 md:py-1.5">
+            <span className={`text-xs md:text-sm font-medium ${totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {totalProfit >= 0 ? '+' : ''}{totalProfit.toFixed(1)}% ({totalBets} bets)
             </span>
           </div>
@@ -94,7 +93,7 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
       </div>
 
       {/* Chart area with daily win rate bars */}
-      <div className="h-32 mb-4 flex items-end gap-1">
+      <div className="h-24 md:h-32 mb-3 md:mb-4 flex items-end gap-0.5 md:gap-1">
         {dailyData.map((day, i) => {
           const isWinning = day.winRate >= 0.5;
           // Bar height based on win rate (50% = baseline, scale from 0-100%)
@@ -105,7 +104,7 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
               className="flex-1 flex flex-col items-center justify-end h-full"
             >
               <div
-                className={`w-full max-w-6 rounded-t-sm ${isWinning ? 'bg-emerald-500' : 'bg-orange-400'}`}
+                className={`w-full max-w-4 md:max-w-6 rounded-t-sm ${isWinning ? 'bg-emerald-500' : 'bg-orange-400'}`}
                 style={{
                   height: `${barHeight}%`,
                   opacity: 0.7 + (i / dailyData.length) * 0.3,
@@ -118,9 +117,9 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
       </div>
 
       {/* Date labels */}
-      <div className="flex justify-between text-xs text-slate-600/70 border-t border-slate-400/20 pt-3">
+      <div className="flex justify-between text-[10px] md:text-xs text-slate-600/70 border-t border-slate-400/20 pt-2 md:pt-3">
         {dailyData.map((day, i) => {
-          const showLabel = i === 0 || i === dailyData.length - 1 || i % Math.max(1, Math.floor(dailyData.length / 6)) === 0;
+          const showLabel = i === 0 || i === dailyData.length - 1 || i % Math.max(1, Math.floor(dailyData.length / 4)) === 0;
           if (!showLabel) return <span key={day.date} className="flex-1" />;
           return (
             <span key={day.date} className="flex-1 text-center first:text-left last:text-right">
