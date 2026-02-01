@@ -13,6 +13,7 @@ export interface PaperTrade {
   kelly_stake: number;
   bookmaker: string;
   strategy: string;
+  team: string | null;
   actual: number | null;
   outcome: 'win' | 'loss' | 'push' | null;
   profit: number | null;

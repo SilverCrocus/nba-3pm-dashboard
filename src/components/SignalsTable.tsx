@@ -29,7 +29,12 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
           <div key={signal.signal_id} className="bg-white/5 rounded-xl p-3">
             <div className="flex justify-between items-start mb-2">
               <div>
-                <p className="font-medium text-white text-sm">{signal.player_name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-white text-sm">{signal.player_name}</p>
+                  {signal.team && (
+                    <span className="text-[10px] text-white/50 font-medium">{signal.team}</span>
+                  )}
+                </div>
                 <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line}</p>
               </div>
               <StatusBadge outcome={signal.outcome} />
@@ -58,7 +63,12 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
             <tr key={signal.signal_id} className="border-b border-white/5">
               <td className="py-3">
                 <div>
-                  <p className="font-medium text-white">{signal.player_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-white">{signal.player_name}</p>
+                    {signal.team && (
+                      <span className="text-xs text-white/40 font-medium">{signal.team}</span>
+                    )}
+                  </div>
                   <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line}</p>
                 </div>
               </td>
