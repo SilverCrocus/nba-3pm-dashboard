@@ -76,11 +76,11 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
           <div className="hidden sm:flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span className="text-slate-700 text-sm">&gt;50%</span>
+              <span className="text-slate-700 text-sm">Profit</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-              <span className="text-slate-700 text-sm">&lt;50%</span>
+              <span className="text-slate-700 text-sm">Loss</span>
             </div>
           </div>
           {/* Overall stat badge */}
@@ -93,38 +93,39 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
       </div>
 
       {/* Chart area with daily win rate bars */}
-      <div className="h-24 md:h-32 mb-3 md:mb-4 flex items-end gap-0.5 md:gap-1">
+      <div className="flex items-end gap-1 md:gap-2">
         {dailyData.map((day, i) => {
-          const isWinning = day.winRate >= 0.5;
+          const isProfitable = day.profit >= 0;
           // Bar height based on win rate (50% = baseline, scale from 0-100%)
           const barHeight = Math.max(20, day.winRate * 100);
+          const winRatePercent = (day.winRate * 100).toFixed(0);
           return (
             <div
               key={day.date}
-              className="flex-1 flex flex-col items-center justify-end h-full"
+              className="flex-1 flex flex-col items-center group"
             >
-              <div
-                className={`w-full max-w-4 md:max-w-6 rounded-t-sm ${isWinning ? 'bg-emerald-500' : 'bg-orange-400'}`}
-                style={{
-                  height: `${barHeight}%`,
-                  opacity: 0.7 + (i / dailyData.length) * 0.3,
-                }}
-                title={`${formatDate(day.date)}: ${day.wins}W-${day.losses}L (${(day.winRate * 100).toFixed(0)}%) | ${(day.profit * 100).toFixed(1)}%`}
-              />
+              {/* Bar container with fixed height */}
+              <div className="h-24 md:h-32 w-full flex items-end justify-center relative">
+                {/* Tooltip on hover */}
+                <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 flex flex-col items-center gap-0.5">
+                  <span className="font-medium">{winRatePercent}% win rate</span>
+                  <span className={day.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                    {day.profit >= 0 ? '+' : ''}{(day.profit * 100).toFixed(1)}% profit
+                  </span>
+                </div>
+                <div
+                  className={`w-3 md:w-4 rounded-t-sm transition-all duration-200 group-hover:scale-110 group-hover:opacity-100 cursor-pointer ${isProfitable ? 'bg-emerald-500' : 'bg-orange-400'}`}
+                  style={{
+                    height: `${barHeight}%`,
+                    opacity: 0.7 + (i / dailyData.length) * 0.3,
+                  }}
+                />
+              </div>
+              {/* Date label directly under bar */}
+              <div className="text-[10px] md:text-xs text-slate-600/70 mt-2 text-center">
+                {isToday(day.date) ? 'Today' : formatDate(day.date)}
+              </div>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Date labels */}
-      <div className="flex justify-between text-[10px] md:text-xs text-slate-600/70 border-t border-slate-400/20 pt-2 md:pt-3">
-        {dailyData.map((day, i) => {
-          const showLabel = i === 0 || i === dailyData.length - 1 || i % Math.max(1, Math.floor(dailyData.length / 4)) === 0;
-          if (!showLabel) return <span key={day.date} className="flex-1" />;
-          return (
-            <span key={day.date} className="flex-1 text-center first:text-left last:text-right">
-              {isToday(day.date) ? 'Today' : formatDate(day.date)}
-            </span>
           );
         })}
       </div>
