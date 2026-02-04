@@ -1,15 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { StatCard } from '@/components/StatCard';
 import { SignalsTable } from '@/components/SignalsTable';
 import { PnLChart } from '@/components/PnLChart';
 import { RecentResults } from '@/components/RecentResults';
-import { useTodaysSignals, usePerformanceStats, useDailyPnL, useRecentResults } from '@/hooks/useTrades';
+import { BankBalanceCard } from '@/components/BankBalanceCard';
+import { useTodaysSignals, usePerformanceStats, useRecentResults, useBankrollSimulation } from '@/hooks/useTrades';
+import { KellyFraction } from '@/types/database';
+
+const STARTING_BANKROLL = 1000;
 
 export default function Dashboard() {
+  const [kellyFraction, setKellyFraction] = useState<KellyFraction>(0.5);
+
   const { signals, loading: signalsLoading } = useTodaysSignals();
   const { stats, loading: statsLoading } = usePerformanceStats();
-  const { dailyData, loading: pnlLoading } = useDailyPnL();
+  const { bankrollData, currentBankroll, loading: bankrollLoading } = useBankrollSimulation(kellyFraction, STARTING_BANKROLL);
   const { results, loading: resultsLoading } = useRecentResults(50);
 
   return (
@@ -34,11 +41,12 @@ export default function Dashboard() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-6">
-          <StatCard
-            title="Total PnL"
-            value={statsLoading ? '...' : (stats.totalPnL >= 0 ? '+' : '') + (stats.totalPnL * 100).toFixed(1) + '%'}
-            subtitle={stats.wins + 'W - ' + stats.losses + 'L'}
-            trend={stats.totalPnL >= 0 ? 'up' : 'down'}
+          <BankBalanceCard
+            currentBankroll={currentBankroll}
+            startingBankroll={STARTING_BANKROLL}
+            kellyFraction={kellyFraction}
+            onKellyChange={setKellyFraction}
+            loading={bankrollLoading}
           />
           <StatCard
             title="Win Rate"
@@ -55,7 +63,7 @@ export default function Dashboard() {
         {/* Charts Row - stack on mobile */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6 mb-4 md:mb-6">
           <div className="lg:col-span-2">
-            <PnLChart data={dailyData} loading={pnlLoading} />
+            <PnLChart data={bankrollData} kellyFraction={kellyFraction} loading={bankrollLoading} />
           </div>
           <div className="lg:col-span-3">
             <SignalsTable signals={signals} loading={signalsLoading} />
