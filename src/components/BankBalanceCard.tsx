@@ -16,6 +16,7 @@ export function BankBalanceCard({
   loading,
 }: BankBalanceCardProps) {
   const profit = currentBankroll - startingBankroll;
+  const roi = (profit / startingBankroll) * 100;
   const isPositive = profit >= 0;
 
   const fractions: { value: KellyFraction; label: string }[] = [
@@ -31,7 +32,7 @@ export function BankBalanceCard({
         {loading ? '...' : `$${currentBankroll.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
       </p>
       <p className={`text-xs md:text-sm mt-0.5 md:mt-1 ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-        {loading ? '' : `${isPositive ? '+' : ''}$${profit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} profit`}
+        {loading ? '' : `${isPositive ? '+' : ''}$${profit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${isPositive ? '+' : ''}${roi.toFixed(1)}%)`}
       </p>
 
       {/* Kelly Fraction Toggles */}
