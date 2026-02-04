@@ -35,7 +35,7 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
                     <span className="text-[10px] text-white/50 font-medium">{signal.team}</span>
                   )}
                 </div>
-                <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line}</p>
+                <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} @ {signal.odds.toFixed(2)}</p>
               </div>
               <StatusBadge outcome={signal.outcome} />
             </div>
@@ -53,6 +53,7 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
           <tr className="text-white/40 text-xs uppercase tracking-wider border-b border-white/10">
             <th className="text-left pb-3">Player</th>
             <th className="text-left pb-3">Line</th>
+            <th className="text-left pb-3">Odds</th>
             <th className="text-left pb-3">Edge</th>
             <th className="text-left pb-3">Book</th>
             <th className="text-right pb-3">Status</th>
@@ -73,6 +74,7 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
                 </div>
               </td>
               <td className="py-3 font-mono text-white/70">{signal.line}</td>
+              <td className="py-3 font-mono text-white/70">{signal.odds.toFixed(2)}</td>
               <td className="py-3 text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</td>
               <td className="py-3 text-white/50">{signal.bookmaker}</td>
               <td className="py-3 text-right">
