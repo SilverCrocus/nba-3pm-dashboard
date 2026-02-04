@@ -1,5 +1,14 @@
 import { PaperTrade } from '@/types/database';
 
+// Convert American odds to decimal odds for display
+function americanToDecimal(americanOdds: number): number {
+  if (americanOdds < 0) {
+    return 1 + (100 / Math.abs(americanOdds));
+  } else {
+    return 1 + (americanOdds / 100);
+  }
+}
+
 interface SignalsTableProps {
   signals: PaperTrade[];
   loading: boolean;
@@ -35,7 +44,7 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
                     <span className="text-[10px] text-white/50 font-medium">{signal.team}</span>
                   )}
                 </div>
-                <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} @ {signal.odds.toFixed(2)}</p>
+                <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} @ {americanToDecimal(signal.odds).toFixed(2)}</p>
               </div>
               <StatusBadge outcome={signal.outcome} />
             </div>
@@ -74,7 +83,7 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
                 </div>
               </td>
               <td className="py-3 font-mono text-white/70">{signal.line}</td>
-              <td className="py-3 font-mono text-white/70">{signal.odds.toFixed(2)}</td>
+              <td className="py-3 font-mono text-white/70">{americanToDecimal(signal.odds).toFixed(2)}</td>
               <td className="py-3 text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</td>
               <td className="py-3 text-white/50">{signal.bookmaker}</td>
               <td className="py-3 text-right">

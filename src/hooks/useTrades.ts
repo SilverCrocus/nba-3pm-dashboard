@@ -4,6 +4,17 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
 
+// Convert American odds to decimal odds
+function americanToDecimal(americanOdds: number): number {
+  if (americanOdds < 0) {
+    // Negative odds (e.g., -128): bet $128 to win $100
+    return 1 + (100 / Math.abs(americanOdds));
+  } else {
+    // Positive odds (e.g., +130): bet $100 to win $130
+    return 1 + (americanOdds / 100);
+  }
+}
+
 export function useTodaysSignals() {
   const [signals, setSignals] = useState<PaperTrade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,9 +160,10 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
 
           for (const trade of data) {
             const stake = bankroll * trade.kelly_stake * kellyFraction;
+            const decimalOdds = americanToDecimal(trade.odds);
 
             if (trade.outcome === 'win') {
-              bankroll += stake * (trade.odds - 1);
+              bankroll += stake * (decimalOdds - 1);
             } else if (trade.outcome === 'loss') {
               bankroll -= stake;
             }
