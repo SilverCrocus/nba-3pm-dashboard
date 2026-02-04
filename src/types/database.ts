@@ -28,3 +28,10 @@ export interface DailyStats {
   profit: number;
   cumulative_profit: number;
 }
+
+export type KellyFraction = 1 | 0.5 | 0.25;
+
+export interface BankrollData {
+  date: string;
+  bankroll: number;
+}
