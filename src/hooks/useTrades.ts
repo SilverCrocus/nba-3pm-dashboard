@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PaperTrade, DailyStats } from '@/types/database';
+import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
 
 export function useTodaysSignals() {
   const [signals, setSignals] = useState<PaperTrade[]>([]);
@@ -128,4 +128,49 @@ export function useRecentResults(limit = 10) {
   }, [limit]);
 
   return { results, loading };
+}
+
+export function useBankrollSimulation(kellyFraction: KellyFraction, startingBankroll: number = 1000) {
+  const [bankrollData, setBankrollData] = useState<BankrollData[]>([]);
+  const [currentBankroll, setCurrentBankroll] = useState(startingBankroll);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from('paper_trades')
+      .select('signal_date, outcome, odds, kelly_stake')
+      .not('outcome', 'is', null)
+      .order('signal_date', { ascending: true })
+      .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) {
+          let bankroll = startingBankroll;
+          const dailyBankrolls: Record<string, number> = {};
+
+          for (const trade of data) {
+            const stake = bankroll * trade.kelly_stake * kellyFraction;
+
+            if (trade.outcome === 'win') {
+              bankroll += stake * (trade.odds - 1);
+            } else if (trade.outcome === 'loss') {
+              bankroll -= stake;
+            }
+            // push: no change
+
+            // Track end-of-day bankroll
+            dailyBankrolls[trade.signal_date] = bankroll;
+          }
+
+          const bankrollTimeSeries: BankrollData[] = Object.entries(dailyBankrolls).map(
+            ([date, bankroll]) => ({ date, bankroll })
+          );
+
+          setBankrollData(bankrollTimeSeries);
+          setCurrentBankroll(bankroll);
+        }
+        setLoading(false);
+      });
+  }, [kellyFraction, startingBankroll]);
+
+  return { bankrollData, currentBankroll, loading };
 }
