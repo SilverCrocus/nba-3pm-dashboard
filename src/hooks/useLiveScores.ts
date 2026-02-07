@@ -52,6 +52,39 @@ export function useLiveScores() {
   return { games, isLoading, lastUpdated, isConnected };
 }
 
+export function usePlayerTeams(signals: PaperTrade[]): PaperTrade[] {
+  const [teamMap, setTeamMap] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    fetch('/api/live-scores')
+      .then(res => res.ok ? res.json() : null)
+      .then((data: LiveScoresResponse | null) => {
+        if (!data) return;
+        const map = new Map<string, string>();
+        for (const game of data.games) {
+          for (const player of game.players) {
+            map.set(normalizePlayerName(player.playerName), player.teamTricode);
+          }
+        }
+        setTeamMap(map);
+      })
+      .catch(() => {});
+  }, []);
+
+  return useMemo(() => {
+    if (teamMap.size === 0) return signals;
+    return signals.map(s => {
+      if (s.team) return s;
+      const tricode = teamMap.get(normalizePlayerName(s.player_name));
+      return tricode ? { ...s, team: tricode } : s;
+    });
+  }, [signals, teamMap]);
+}
+
+function normalizePlayerName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]/g, '');
+}
+
 function deriveSignalStatus(gameStatus: GameStatus, side: 'over' | 'under', line: number, fg3m: number): SignalStatus {
   if (gameStatus === 'scheduled') return 'scheduled';
   if (gameStatus === 'live') return 'tracking';
@@ -67,10 +100,6 @@ function deriveSignalStatus(gameStatus: GameStatus, side: 'over' | 'under', line
     if (fg3m > line) return 'miss';
     return 'push';
   }
-}
-
-function normalizePlayerName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '');
 }
 
 export interface LiveSignalsResult {
