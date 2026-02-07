@@ -96,7 +96,10 @@ export function GameCard({ game, signals }: GameWithSignals) {
           {signals.map((s) => (
             <tr key={s.signal_id} className="border-b border-white/[0.04]">
               <td className="px-6 py-3">
-                <p className="font-medium text-white">{s.player_name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-white">{s.player_name}</p>
+                  {s.team && <span className="text-xs text-white/40 font-medium">{s.team}</span>}
+                </div>
               </td>
               <td className="px-3 py-3 text-center">
                 {s.liveThreePointersMade !== null ? (

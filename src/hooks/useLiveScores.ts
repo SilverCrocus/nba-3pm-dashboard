@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   LiveGame,
+  LivePlayer,
   LiveScoresResponse,
   PaperTrade,
   EnrichedSignal,
@@ -68,69 +69,68 @@ function deriveSignalStatus(gameStatus: GameStatus, side: 'over' | 'under', line
   }
 }
 
-export function useLiveSignals(signals: PaperTrade[], games: LiveGame[]): GameWithSignals[] {
-  return useMemo(() => {
-    if (games.length === 0 || signals.length === 0) return [];
+function normalizePlayerName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z]/g, '');
+}
 
-    // Build a lookup: playerId -> LiveGame + LivePlayer
-    const playerGameMap = new Map<number, { game: LiveGame; player: typeof games[0]['players'][0] }>();
+export interface LiveSignalsResult {
+  gamesWithSignals: GameWithSignals[];
+  unmatchedSignals: EnrichedSignal[];
+}
+
+export function useLiveSignals(signals: PaperTrade[], games: LiveGame[]): LiveSignalsResult {
+  return useMemo(() => {
+    if (signals.length === 0) return { gamesWithSignals: [], unmatchedSignals: [] };
+
+    // Build a lookup: normalized player name -> LiveGame + LivePlayer
+    const playerNameMap = new Map<string, { game: LiveGame; player: LivePlayer }>();
     for (const game of games) {
       for (const player of game.players) {
-        playerGameMap.set(player.playerId, { game, player });
+        playerNameMap.set(normalizePlayerName(player.playerName), { game, player });
       }
-    }
-
-    // Also build a lookup by team tricode -> game for scheduled games (no players yet)
-    const teamGameMap = new Map<string, LiveGame>();
-    for (const game of games) {
-      teamGameMap.set(game.homeTeam.tricode, game);
-      teamGameMap.set(game.awayTeam.tricode, game);
     }
 
     // Group signals by game
     const gameSignalsMap = new Map<string, { game: LiveGame; signals: EnrichedSignal[] }>();
+    const unmatchedSignals: EnrichedSignal[] = [];
 
     for (const signal of signals) {
-      const playerId = parseInt(signal.player_id, 10);
-      const match = playerGameMap.get(playerId);
-
-      let game: LiveGame | undefined;
-      let enriched: EnrichedSignal;
+      const normalizedName = normalizePlayerName(signal.player_name);
+      const match = playerNameMap.get(normalizedName);
 
       if (match) {
-        game = match.game;
-        const p = match.player;
-        enriched = {
+        const { game, player: p } = match;
+        const enriched: EnrichedSignal = {
           ...signal,
+          // Backfill team from NBA API if signal has no team
+          team: signal.team || p.teamTricode,
           liveThreePointersMade: p.threePointersMade,
           isOnCourt: p.isOnCourt,
           minutesPlayed: p.minutes,
           signalStatus: deriveSignalStatus(game.status, signal.side, signal.line, p.threePointersMade),
         };
-      } else {
-        // Try matching by team for scheduled games
-        game = signal.team ? teamGameMap.get(signal.team) : undefined;
-        enriched = {
-          ...signal,
-          liveThreePointersMade: null,
-          isOnCourt: null,
-          minutesPlayed: null,
-          signalStatus: game ? (game.status === 'scheduled' ? 'scheduled' : 'tracking') : 'scheduled',
-        };
-      }
-
-      if (game) {
         const key = game.gameId;
         if (!gameSignalsMap.has(key)) {
           gameSignalsMap.set(key, { game, signals: [] });
         }
         gameSignalsMap.get(key)!.signals.push(enriched);
+      } else {
+        // No game match — still show the signal
+        unmatchedSignals.push({
+          ...signal,
+          liveThreePointersMade: null,
+          isOnCourt: null,
+          minutesPlayed: null,
+          signalStatus: 'scheduled',
+        });
       }
     }
 
     // Sort: live games first, then scheduled, then final
     const statusOrder: Record<GameStatus, number> = { live: 0, scheduled: 1, final: 2 };
-    return Array.from(gameSignalsMap.values())
+    const gamesWithSignals = Array.from(gameSignalsMap.values())
       .sort((a, b) => statusOrder[a.game.status] - statusOrder[b.game.status]);
+
+    return { gamesWithSignals, unmatchedSignals };
   }, [signals, games]);
 }
