@@ -9,24 +9,26 @@ interface LiveHeaderProps {
   hasActiveGames: boolean;
 }
 
-export function LiveHeader({ lastUpdated, isConnected, isLoading, hasActiveGames }: LiveHeaderProps) {
-  const [secondsAgo, setSecondsAgo] = useState(0);
-
-  useEffect(() => {
-    if (!lastUpdated) return;
-    setSecondsAgo(0);
-    const interval = setInterval(() => {
-      setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [lastUpdated]);
-
-  const today = new Date().toLocaleDateString('en-US', {
+function getToday(): string {
+  return new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
     timeZone: 'America/New_York',
   });
+}
+
+export function LiveHeader({ lastUpdated, isConnected, isLoading, hasActiveGames }: LiveHeaderProps) {
+  const [today] = useState(getToday);
+  const [secondsAgo, setSecondsAgo] = useState(0);
+
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const interval = setInterval(() => {
+      setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lastUpdated]);
 
   return (
     <div className="mb-6 md:mb-8">
