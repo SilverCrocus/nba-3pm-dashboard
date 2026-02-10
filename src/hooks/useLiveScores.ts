@@ -74,7 +74,7 @@ export function usePlayerTeams(signals: PaperTrade[]): PaperTrade[] {
   return useMemo(() => {
     if (teamMap.size === 0) return signals;
     return signals.map(s => {
-      if (s.team) return s;
+      if (s.team && s.team.trim()) return s;
       const tricode = teamMap.get(normalizePlayerName(s.player_name));
       return tricode ? { ...s, team: tricode } : s;
     });
@@ -132,7 +132,7 @@ export function useLiveSignals(signals: PaperTrade[], games: LiveGame[]): LiveSi
         const enriched: EnrichedSignal = {
           ...signal,
           // Backfill team from NBA API if signal has no team
-          team: signal.team || p.teamTricode,
+          team: (signal.team && signal.team.trim()) ? signal.team : p.teamTricode,
           liveThreePointersMade: p.threePointersMade,
           isOnCourt: p.isOnCourt,
           minutesPlayed: p.minutes,

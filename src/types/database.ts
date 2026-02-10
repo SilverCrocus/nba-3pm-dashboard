@@ -15,7 +15,7 @@ export interface PaperTrade {
   strategy: string;
   team: string | null;
   actual: number | null;
-  outcome: 'win' | 'loss' | 'push' | null;
+  outcome: 'win' | 'loss' | 'push' | 'voided' | null;
   profit: number | null;
   created_at: string;
 }

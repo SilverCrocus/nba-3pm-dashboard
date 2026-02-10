@@ -104,5 +104,11 @@ function StatusBadge({ outcome }: { outcome: string | null }) {
   if (outcome === 'win') {
     return <span className="px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">Win</span>;
   }
+  if (outcome === 'voided') {
+    return <span className="px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-white/50">Voided</span>;
+  }
+  if (outcome === 'push') {
+    return <span className="px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">Push</span>;
+  }
   return <span className="px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">Loss</span>;
 }

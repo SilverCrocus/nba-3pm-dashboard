@@ -45,6 +45,7 @@ export function usePerformanceStats() {
     losses: 0,
     totalBets: 0,
     pendingBets: 0,
+    voidedBets: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -54,8 +55,9 @@ export function usePerformanceStats() {
       .select('outcome, profit')
       .then(({ data, error }) => {
         if (!error && data) {
-          const reconciled = data.filter(d => d.outcome);
+          const reconciled = data.filter(d => d.outcome && d.outcome !== 'voided');
           const pending = data.filter(d => !d.outcome);
+          const voided = data.filter(d => d.outcome === 'voided').length;
           const wins = reconciled.filter(d => d.outcome === 'win').length;
           const losses = reconciled.filter(d => d.outcome === 'loss').length;
           const totalPnL = reconciled.reduce((sum, d) => sum + (d.profit || 0), 0);
@@ -67,6 +69,7 @@ export function usePerformanceStats() {
             losses,
             totalBets: reconciled.length,
             pendingBets: pending.length,
+            voidedBets: voided,
           });
         }
         setLoading(false);
@@ -88,8 +91,9 @@ export function useDailyPnL() {
       .order('signal_date', { ascending: true })
       .then(({ data, error }) => {
         if (!error && data) {
+          const trades = data.filter(d => d.outcome !== 'voided');
           // Group by date
-          const byDate = data.reduce((acc, trade) => {
+          const byDate = trades.reduce((acc, trade) => {
             const date = trade.signal_date;
             if (!acc[date]) {
               acc[date] = { bets: 0, wins: 0, losses: 0, profit: 0 };
@@ -133,7 +137,7 @@ export function useRecentResults(limit = 10) {
       .order('signal_date', { ascending: false })
       .limit(limit)
       .then(({ data, error }) => {
-        if (!error && data) setResults(data);
+        if (!error && data) setResults(data.filter(d => d.outcome !== 'voided'));
         setLoading(false);
       });
   }, [limit]);
@@ -155,10 +159,11 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
       .order('created_at', { ascending: true })
       .then(({ data, error }) => {
         if (!error && data) {
+          const trades = data.filter(d => d.outcome !== 'voided');
           let bankroll = startingBankroll;
           const dailyBankrolls: Record<string, number> = {};
 
-          for (const trade of data) {
+          for (const trade of trades) {
             const stake = bankroll * trade.kelly_stake * kellyFraction;
             const decimalOdds = americanToDecimal(trade.odds);
 
