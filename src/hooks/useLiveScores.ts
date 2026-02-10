@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { supabase } from '@/lib/supabase';
 import {
   LiveGame,
   LivePlayer,
@@ -56,20 +57,50 @@ export function usePlayerTeams(signals: PaperTrade[]): PaperTrade[] {
   const [teamMap, setTeamMap] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
+    // Step 1: Try NBA live scores API (covers players whose teams play today)
     fetch('/api/live-scores')
       .then(res => res.ok ? res.json() : null)
       .then((data: LiveScoresResponse | null) => {
-        if (!data) return;
         const map = new Map<string, string>();
-        for (const game of data.games) {
-          for (const player of game.players) {
-            map.set(normalizePlayerName(player.playerName), player.teamTricode);
+        if (data) {
+          for (const game of data.games) {
+            for (const player of game.players) {
+              map.set(normalizePlayerName(player.playerName), player.teamTricode);
+            }
           }
         }
-        setTeamMap(map);
+
+        // Step 2: Find players still missing teams, look up from game_results
+        const missing = signals.filter(s => {
+          if (s.team && s.team.trim()) return false;
+          return !map.has(normalizePlayerName(s.player_name));
+        });
+
+        if (missing.length === 0) {
+          setTeamMap(map);
+          return;
+        }
+
+        const names = missing.map(s => s.player_name);
+        supabase
+          .from('game_results')
+          .select('player_name, team, game_date')
+          .in('player_name', names)
+          .order('game_date', { ascending: false })
+          .then(({ data: rows }) => {
+            if (rows) {
+              for (const row of rows) {
+                const key = normalizePlayerName(row.player_name);
+                if (!map.has(key) && row.team) {
+                  map.set(key, row.team);
+                }
+              }
+            }
+            setTeamMap(new Map(map));
+          });
       })
       .catch(() => {});
-  }, []);
+  }, [signals]);
 
   return useMemo(() => {
     if (teamMap.size === 0) return signals;
@@ -82,7 +113,7 @@ export function usePlayerTeams(signals: PaperTrade[]): PaperTrade[] {
 }
 
 function normalizePlayerName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z]/g, '');
+  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
 function deriveSignalStatus(gameStatus: GameStatus, side: 'over' | 'under', line: number, fg3m: number): SignalStatus {
