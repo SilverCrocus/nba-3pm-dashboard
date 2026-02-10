@@ -1,7 +1,7 @@
 # CI Reconcile Fix Design
 
 **Date:** 2026-01-30
-**Status:** Ready for implementation
+**Status:** Implemented (2026-02-10)
 **Repo:** SilverCrocus/nba-3pm-model
 
 ## Problem Statement
@@ -106,7 +106,7 @@ def _reconcile_from_supabase(trader: PaperTrader) -> int:
 | No pending signals | Return early, exit 0 |
 | NBA API rate limit | 2s delay between calls (existing) |
 | Game not yet played | Skip signal (ET timezone check) |
-| Player didn't play | Mark as "push" or skip |
+| Player didn't play (DNP) | Mark as `voided` (checks `minutes == 0` in `game_results`) |
 | NBA API down | Log warning, exit non-zero for retry |
 | Supabase write fails | Retry once, then fail |
 
