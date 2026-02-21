@@ -33,7 +33,6 @@ export type KellyFraction = 1 | 0.5 | 0.25;
 
 export interface SizedSignal extends PaperTrade {
   dollarBet: number | null;
-  skipReason: 'minimum' | 'cap' | null;
 }
 
 export interface BankrollData {

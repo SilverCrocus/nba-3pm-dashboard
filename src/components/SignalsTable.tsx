@@ -153,18 +153,9 @@ function BetCell({ signal, bankroll, kellyFraction }: { signal: SizedSignal; ban
     return <span className="text-white/40 font-mono text-sm">{(signal.kelly_stake * kellyFraction * 100).toFixed(1)}%</span>;
   }
 
-  if (signal.dollarBet === null) {
-    const reason = 'Daily cap reached';
-    return (
-      <span className="text-orange-400/60 text-xs font-medium cursor-help" title={reason}>
-        Skip
-      </span>
-    );
-  }
-
   return (
     <span className="text-green-400 font-medium font-mono text-sm">
-      ${signal.dollarBet.toFixed(2)}
+      ${signal.dollarBet!.toFixed(2)}
     </span>
   );
 }
