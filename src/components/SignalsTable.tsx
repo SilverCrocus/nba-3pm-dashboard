@@ -73,17 +73,7 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
             </span>
           </div>
         )}
-        {bankroll !== null && bankroll > 0 && bankroll < 50 && (
-          <span className="text-yellow-400/70 text-xs">Bankroll may be too small for Kelly sizing</span>
-        )}
       </div>
-
-      {/* All signals skipped warning */}
-      {bankroll && bankroll > 0 && pendingCount > 0 && activeBets === 0 && (
-        <div className="mb-4 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs">
-          Bankroll too small for any signals at current Kelly fraction. Try a larger bankroll or higher Kelly fraction.
-        </div>
-      )}
 
       {/* Mobile: Card layout */}
       <div className="md:hidden space-y-3">
@@ -164,7 +154,7 @@ function BetCell({ signal, bankroll, kellyFraction }: { signal: SizedSignal; ban
   }
 
   if (signal.dollarBet === null) {
-    const reason = signal.skipReason === 'minimum' ? 'Below $5 minimum' : 'Daily cap reached';
+    const reason = 'Daily cap reached';
     return (
       <span className="text-orange-400/60 text-xs font-medium cursor-help" title={reason}>
         Skip

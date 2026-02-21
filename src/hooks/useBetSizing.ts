@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { PaperTrade, KellyFraction, SizedSignal } from '@/types/database';
 
 const DAILY_CAP_PCT = 0.10;
-const MIN_BET = 5;
+const MIN_BET = 0;
 
 export function useBetSizing(
   signals: PaperTrade[],
