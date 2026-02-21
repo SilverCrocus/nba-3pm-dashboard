@@ -6,7 +6,7 @@ import { SignalsTable } from '@/components/SignalsTable';
 import { PnLChart } from '@/components/PnLChart';
 import { RecentResults } from '@/components/RecentResults';
 import { BankBalanceCard } from '@/components/BankBalanceCard';
-import { useTodaysSignals, usePerformanceStats, useRecentResults, useBankrollSimulation } from '@/hooks/useTrades';
+import { useLatestSignals, usePerformanceStats, useRecentResults, useBankrollSimulation } from '@/hooks/useTrades';
 import { usePlayerTeams } from '@/hooks/useLiveScores';
 import { KellyFraction } from '@/types/database';
 
@@ -15,7 +15,7 @@ const STARTING_BANKROLL = 1000;
 export default function Dashboard() {
   const [kellyFraction, setKellyFraction] = useState<KellyFraction>(0.5);
 
-  const { signals: rawSignals, loading: signalsLoading } = useTodaysSignals();
+  const { signals: rawSignals, signalDate, loading: signalsLoading } = useLatestSignals();
   const signals = usePlayerTeams(rawSignals);
   const { stats, loading: statsLoading } = usePerformanceStats();
   const { bankrollData, currentBankroll, loading: bankrollLoading } = useBankrollSimulation(kellyFraction, STARTING_BANKROLL);
@@ -45,7 +45,7 @@ export default function Dashboard() {
             subtitle={stats.totalBets + ' total bets'}
           />
           <StatCard
-            title="Todays Bets"
+            title={signalDate ? new Date(signalDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'Bets'}
             value={signalsLoading ? '...' : signals.length.toString()}
             subtitle={signals.filter(s => !s.outcome).length + ' pending'}
           />

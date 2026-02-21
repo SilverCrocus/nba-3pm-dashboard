@@ -15,26 +15,59 @@ function americanToDecimal(americanOdds: number): number {
   }
 }
 
-export function useTodaysSignals() {
+export function useLatestSignals() {
   const [signals, setSignals] = useState<PaperTrade[]>([]);
+  const [signalDate, setSignalDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Use ET timezone (America/New_York) since NBA games/signals use ET dates
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    async function fetchLatestSignals() {
+      // Step 1: Find the latest date that has pending (unreconciled) signals
+      const { data: pendingDates } = await supabase
+        .from('paper_trades')
+        .select('signal_date')
+        .is('outcome', null)
+        .order('signal_date', { ascending: false })
+        .limit(1);
 
-    supabase
-      .from('paper_trades')
-      .select('*')
-      .eq('signal_date', today)
-      .order('edge_pct', { ascending: false })
-      .then(({ data, error }) => {
-        if (!error && data) setSignals(data);
+      let targetDate: string | null = null;
+
+      if (pendingDates && pendingDates.length > 0) {
+        targetDate = pendingDates[0].signal_date;
+      } else {
+        // No pending signals — fall back to the most recent signal date overall
+        const { data: latestDates } = await supabase
+          .from('paper_trades')
+          .select('signal_date')
+          .order('signal_date', { ascending: false })
+          .limit(1);
+
+        if (latestDates && latestDates.length > 0) {
+          targetDate = latestDates[0].signal_date;
+        }
+      }
+
+      if (!targetDate) {
         setLoading(false);
-      });
+        return;
+      }
+
+      // Step 2: Fetch all signals for that date
+      const { data, error } = await supabase
+        .from('paper_trades')
+        .select('*')
+        .eq('signal_date', targetDate)
+        .order('edge_pct', { ascending: false });
+
+      if (!error && data) setSignals(data);
+      setSignalDate(targetDate);
+      setLoading(false);
+    }
+
+    fetchLatestSignals();
   }, []);
 
-  return { signals, loading };
+  return { signals, signalDate, loading };
 }
 
 export function usePerformanceStats() {

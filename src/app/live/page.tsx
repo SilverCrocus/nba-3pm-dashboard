@@ -1,13 +1,13 @@
 'use client';
 
-import { useTodaysSignals } from '@/hooks/useTrades';
+import { useLatestSignals } from '@/hooks/useTrades';
 import { useLiveScores, useLiveSignals } from '@/hooks/useLiveScores';
 import { LiveHeader } from '@/components/LiveHeader';
 import { GameCard } from '@/components/GameCard';
 import { LiveStatusBadge } from '@/components/LiveStatusBadge';
 
 export default function LiveTracker() {
-  const { signals, loading: signalsLoading } = useTodaysSignals();
+  const { signals, loading: signalsLoading } = useLatestSignals();
   const { games, isLoading: scoresLoading, lastUpdated, isConnected } = useLiveScores();
   const { gamesWithSignals, unmatchedSignals } = useLiveSignals(signals, games);
 

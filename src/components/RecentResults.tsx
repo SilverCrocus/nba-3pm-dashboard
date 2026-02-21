@@ -15,14 +15,13 @@ interface DailyAggregate {
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const date = new Date(dateStr + 'T12:00:00');
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
 }
 
 function isToday(dateStr: string): boolean {
-  const date = new Date(dateStr);
-  const today = new Date();
-  return date.toDateString() === today.toDateString();
+  const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  return dateStr === todayET;
 }
 
 function aggregateByDay(results: PaperTrade[]): DailyAggregate[] {
