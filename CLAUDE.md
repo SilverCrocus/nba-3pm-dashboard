@@ -4,7 +4,7 @@
 
 Next.js dashboard for the NBA 3PM betting model. Displays daily signals, live game tracking, performance stats, and bankroll simulation. Reads all data from Supabase.
 
-Live: https://nba-3pm-dashboard.onrender.com
+Live: https://nba-3pm-live.onrender.com
 
 ## Commands
 
@@ -66,7 +66,7 @@ All hooks **exclude voided trades** from stats and calculations.
 |---------------|---------|
 | `useLiveScores()` | Polls `/api/live-scores` every 10s, stops when all games final |
 | `usePlayerTeams(signals)` | Resolves team tricodes for signals (2-step: NBA API then Supabase fallback) |
-| `useLiveSignals(signals, games)` | Matches signals to live games, enriches with 3PM/minutes/court status |
+| `useLiveSignals(signals, games, signalDate?)` | Matches signals to live games by player name, filtered by signal date to prevent cross-date matching. Enriches with 3PM/minutes/court status |
 | `normalizePlayerName()` | Unicode NFD decomposition + lowercase + strip non-alpha |
 
 ## Team Name Resolution
@@ -110,8 +110,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 - **All `signal_date` values are ET dates** (America/New_York). NBA games are organized by ET date.
 - **`useLatestSignals()`** is timezone-agnostic — queries by pending status, not by "today" in any timezone. Works correctly regardless of user location.
-- **Display dates** in components use `timeZone: 'America/New_York'` for consistency (LiveHeader, GameCard, RecentResults).
-- **Never use `new Date(dateStr)` without timezone** for date-only strings — it parses as UTC midnight which causes off-by-one errors. Use `new Date(dateStr + 'T12:00:00')` with explicit timezone, or compare raw YYYY-MM-DD strings directly.
+- **Date-only strings (`YYYY-MM-DD`) MUST be parsed as UTC**: Use `new Date(dateStr + 'T12:00:00Z')` with `timeZone: 'UTC'` for display. The `Z` suffix is critical — without it, the string parses as local time, which shifts dates by one day for users outside UTC (e.g., AEDT users see "Feb 19" instead of "Feb 20").
+- **Never use `timeZone: 'America/New_York'` for date-only strings** — this converts a calendar date into a point in time, then displays it in ET, causing off-by-one errors for non-ET users. UTC in, UTC out.
+- **`isToday()` comparison** uses `toLocaleDateString('en-CA', { timeZone: 'America/New_York' })` to get today's ET date as `YYYY-MM-DD` and compares directly against the raw string — no Date parsing needed.
+- **Live tracker date filtering**: `useLiveSignals` accepts a `signalDate` parameter and filters NBA CDN games by ET date (`getGameDateET()`) to prevent cross-date signal-to-game matching.
 
 ## Danger Zones
 
@@ -120,3 +122,4 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 3. **Polling interval**: 10s in `useLiveScores`. Don't decrease — NBA CDN may rate limit.
 4. **Empty string vs null for team**: CI writes `team: ""` not `null`. Always check with `s.team && s.team.trim()`.
 5. **useLiveScores re-render loop**: The `useEffect` depends on `games` state. The `allDone` check prevents infinite fetching when all games are final, but modifying the dependency array carelessly can cause loops.
+6. **Date parsing without `Z` suffix**: `new Date("2026-02-20T12:00:00")` parses as LOCAL time. For AEDT (UTC+11), noon local = 1am UTC = previous day in ET. Always use `T12:00:00Z` (with Z) for date-only strings.
