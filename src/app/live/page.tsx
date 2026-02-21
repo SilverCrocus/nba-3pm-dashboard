@@ -7,9 +7,9 @@ import { GameCard } from '@/components/GameCard';
 import { LiveStatusBadge } from '@/components/LiveStatusBadge';
 
 export default function LiveTracker() {
-  const { signals, loading: signalsLoading } = useLatestSignals();
+  const { signals, signalDate, loading: signalsLoading } = useLatestSignals();
   const { games, isLoading: scoresLoading, lastUpdated, isConnected } = useLiveScores();
-  const { gamesWithSignals, unmatchedSignals } = useLiveSignals(signals, games);
+  const { gamesWithSignals, unmatchedSignals } = useLiveSignals(signals, games, signalDate);
 
   const isLoading = signalsLoading || scoresLoading;
   const hasActiveGames = games.some(g => g.status === 'live');

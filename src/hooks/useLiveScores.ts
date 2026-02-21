@@ -138,13 +138,30 @@ export interface LiveSignalsResult {
   unmatchedSignals: EnrichedSignal[];
 }
 
-export function useLiveSignals(signals: PaperTrade[], games: LiveGame[]): LiveSignalsResult {
+function getGameDateET(game: LiveGame): string | null {
+  if (!game.startTimeUTC) return null;
+  try {
+    return new Date(game.startTimeUTC).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  } catch {
+    return null;
+  }
+}
+
+export function useLiveSignals(signals: PaperTrade[], games: LiveGame[], signalDate?: string | null): LiveSignalsResult {
   return useMemo(() => {
     if (signals.length === 0) return { gamesWithSignals: [], unmatchedSignals: [] };
 
+    // Filter games to only those matching the signal date (prevents cross-date matching)
+    const relevantGames = signalDate
+      ? games.filter(g => {
+          const gameDate = getGameDateET(g);
+          return !gameDate || gameDate === signalDate;
+        })
+      : games;
+
     // Build a lookup: normalized player name -> LiveGame + LivePlayer
     const playerNameMap = new Map<string, { game: LiveGame; player: LivePlayer }>();
-    for (const game of games) {
+    for (const game of relevantGames) {
       for (const player of game.players) {
         playerNameMap.set(normalizePlayerName(player.playerName), { game, player });
       }
@@ -192,5 +209,5 @@ export function useLiveSignals(signals: PaperTrade[], games: LiveGame[]): LiveSi
       .sort((a, b) => statusOrder[a.game.status] - statusOrder[b.game.status]);
 
     return { gamesWithSignals, unmatchedSignals };
-  }, [signals, games]);
+  }, [signals, games, signalDate]);
 }
