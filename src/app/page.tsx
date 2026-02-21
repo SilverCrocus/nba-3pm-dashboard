@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { StatCard } from '@/components/StatCard';
 import { SignalsTable } from '@/components/SignalsTable';
 import { PnLChart } from '@/components/PnLChart';
@@ -15,20 +15,19 @@ const STARTING_BANKROLL = 1000;
 
 export default function Dashboard() {
   const [kellyFraction, setKellyFraction] = useState<KellyFraction>(0.5);
-  const [bankroll, setBankroll] = useState<number | null>(null);
-
-  // Load bankroll from localStorage on mount
-  useEffect(() => {
+  const [bankroll, setBankroll] = useState<number | null>(() => {
+    if (typeof window === 'undefined') return null;
     try {
       const saved = localStorage.getItem('nba3pm_bankroll');
       if (saved) {
         const parsed = parseFloat(saved);
-        if (!isNaN(parsed) && parsed > 0) setBankroll(parsed);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
       }
     } catch {
-      // localStorage unavailable, stay with null
+      // localStorage unavailable
     }
-  }, []);
+    return null;
+  });
 
   const { signals: rawSignals, signalDate, loading: signalsLoading } = useLatestSignals();
   const signals = usePlayerTeams(rawSignals);
