@@ -52,7 +52,7 @@ src/
 
 | Hook | Purpose |
 |------|---------|
-| `useTodaysSignals()` | Fetch today's signals from `paper_trades` (by ET date) |
+| `useLatestSignals()` | Fetch latest signals — picks the most recent `signal_date` with pending outcomes, falls back to latest date overall. Timezone-agnostic. Returns `{ signals, signalDate, loading }`. |
 | `usePerformanceStats()` | Win rate, total P&L, wins/losses/voided counts |
 | `useDailyPnL()` | Daily profit grouped by date with cumulative total |
 | `useRecentResults(limit)` | Last N reconciled trades |
@@ -105,6 +105,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 |-------|-------|
 | `paper_trades` | All signals, outcomes, profit — primary data source |
 | `game_results` | Team name fallback for players not in today's games |
+
+## Timezone Conventions
+
+- **All `signal_date` values are ET dates** (America/New_York). NBA games are organized by ET date.
+- **`useLatestSignals()`** is timezone-agnostic — queries by pending status, not by "today" in any timezone. Works correctly regardless of user location.
+- **Display dates** in components use `timeZone: 'America/New_York'` for consistency (LiveHeader, GameCard, RecentResults).
+- **Never use `new Date(dateStr)` without timezone** for date-only strings — it parses as UTC midnight which causes off-by-one errors. Use `new Date(dateStr + 'T12:00:00')` with explicit timezone, or compare raw YYYY-MM-DD strings directly.
 
 ## Danger Zones
 
