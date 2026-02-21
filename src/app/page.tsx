@@ -45,7 +45,7 @@ export default function Dashboard() {
             subtitle={stats.totalBets + ' total bets'}
           />
           <StatCard
-            title={signalDate ? new Date(signalDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'Bets'}
+            title={signalDate ? new Date(signalDate + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'Bets'}
             value={signalsLoading ? '...' : signals.length.toString()}
             subtitle={signals.filter(s => !s.outcome).length + ' pending'}
           />

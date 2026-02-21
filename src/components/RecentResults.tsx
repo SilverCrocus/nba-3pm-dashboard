@@ -15,8 +15,8 @@ interface DailyAggregate {
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T12:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
+  const date = new Date(dateStr + 'T12:00:00Z');
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
 function isToday(dateStr: string): boolean {
