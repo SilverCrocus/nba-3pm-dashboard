@@ -1,4 +1,4 @@
-import { PaperTrade } from '@/types/database';
+import { SizedSignal, KellyFraction } from '@/types/database';
 
 // Convert American odds to decimal odds for display
 function americanToDecimal(americanOdds: number): number {
@@ -10,11 +10,16 @@ function americanToDecimal(americanOdds: number): number {
 }
 
 interface SignalsTableProps {
-  signals: PaperTrade[];
+  signals: SizedSignal[];
   loading: boolean;
+  bankroll: number | null;
+  onBankrollChange: (value: number | null) => void;
+  totalRisk: number;
+  activeBets: number;
+  kellyFraction: KellyFraction;
 }
 
-export function SignalsTable({ signals, loading }: SignalsTableProps) {
+export function SignalsTable({ signals, loading, bankroll, onBankrollChange, totalRisk, activeBets, kellyFraction }: SignalsTableProps) {
   if (loading) {
     return <div className="text-white/50">Loading signals...</div>;
   }
@@ -28,9 +33,57 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
     );
   }
 
+  const pendingCount = signals.filter(s => !s.outcome).length;
+
   return (
     <div className="bg-[rgba(38,38,45,0.6)] backdrop-blur-md border border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6">
       <h3 className="text-lg md:text-xl font-semibold text-white mb-4">Today&apos;s Signals</h3>
+
+      {/* Bankroll Input Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 pb-4 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <label className="text-white/50 text-xs font-medium whitespace-nowrap">Your Bankroll:</label>
+          <div className="relative">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={bankroll ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^0-9.]/g, '');
+                if (raw === '') {
+                  onBankrollChange(null);
+                } else {
+                  const parsed = parseFloat(raw);
+                  if (!isNaN(parsed)) onBankrollChange(parsed);
+                }
+              }}
+              placeholder="500"
+              className="w-28 bg-white/5 border border-white/10 rounded-lg pl-6 pr-2 py-1.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20"
+            />
+          </div>
+        </div>
+        {bankroll && bankroll > 0 && (
+          <div className="flex gap-3 text-xs">
+            <span className="text-white/50">
+              Total Risk: <span className="text-orange-400 font-medium">${totalRisk.toFixed(0)} ({((totalRisk / bankroll) * 100).toFixed(1)}%)</span>
+            </span>
+            <span className="text-white/50">
+              Bets: <span className="text-white/70 font-medium">{activeBets} of {pendingCount}</span>
+            </span>
+          </div>
+        )}
+        {bankroll !== null && bankroll > 0 && bankroll < 50 && (
+          <span className="text-yellow-400/70 text-xs">Bankroll may be too small for Kelly sizing</span>
+        )}
+      </div>
+
+      {/* All signals skipped warning */}
+      {bankroll && bankroll > 0 && pendingCount > 0 && activeBets === 0 && (
+        <div className="mb-4 px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs">
+          Bankroll too small for any signals at current Kelly fraction. Try a larger bankroll or higher Kelly fraction.
+        </div>
+      )}
 
       {/* Mobile: Card layout */}
       <div className="md:hidden space-y-3">
@@ -52,6 +105,10 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
               <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}% edge</span>
               <span className="text-white/50">{signal.bookmaker}</span>
             </div>
+            <div className="flex justify-between text-xs mt-1">
+              <span className="text-white/40">Bet:</span>
+              <BetCell signal={signal} bankroll={bankroll} kellyFraction={kellyFraction} />
+            </div>
           </div>
         ))}
       </div>
@@ -64,6 +121,7 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
             <th className="text-left pb-3">Line</th>
             <th className="text-left pb-3">Odds</th>
             <th className="text-left pb-3">Edge</th>
+            <th className="text-left pb-3">Bet</th>
             <th className="text-left pb-3">Book</th>
             <th className="text-right pb-3">Status</th>
           </tr>
@@ -85,6 +143,9 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
               <td className="py-3 font-mono text-white/70">{signal.line}</td>
               <td className="py-3 font-mono text-white/70">{americanToDecimal(signal.odds).toFixed(2)}</td>
               <td className="py-3 text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</td>
+              <td className="py-3">
+                <BetCell signal={signal} bankroll={bankroll} kellyFraction={kellyFraction} />
+              </td>
               <td className="py-3 text-white/50">{signal.bookmaker}</td>
               <td className="py-3 text-right">
                 <StatusBadge outcome={signal.outcome} />
@@ -94,6 +155,27 @@ export function SignalsTable({ signals, loading }: SignalsTableProps) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function BetCell({ signal, bankroll, kellyFraction }: { signal: SizedSignal; bankroll: number | null; kellyFraction: KellyFraction }) {
+  if (!bankroll || bankroll <= 0) {
+    return <span className="text-white/40 font-mono text-sm">{(signal.kelly_stake * kellyFraction * 100).toFixed(1)}%</span>;
+  }
+
+  if (signal.dollarBet === null) {
+    const reason = signal.skipReason === 'minimum' ? 'Below $5 minimum' : 'Daily cap reached';
+    return (
+      <span className="text-orange-400/60 text-xs font-medium cursor-help" title={reason}>
+        Skip
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-green-400 font-medium font-mono text-sm">
+      ${signal.dollarBet.toFixed(2)}
+    </span>
   );
 }
 
