@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StatCard } from '@/components/StatCard';
 import { SignalsTable } from '@/components/SignalsTable';
 import { PnLChart } from '@/components/PnLChart';
@@ -8,18 +8,47 @@ import { RecentResults } from '@/components/RecentResults';
 import { BankBalanceCard } from '@/components/BankBalanceCard';
 import { useLatestSignals, usePerformanceStats, useRecentResults, useBankrollSimulation } from '@/hooks/useTrades';
 import { usePlayerTeams } from '@/hooks/useLiveScores';
+import { useBetSizing } from '@/hooks/useBetSizing';
 import { KellyFraction } from '@/types/database';
 
 const STARTING_BANKROLL = 1000;
 
 export default function Dashboard() {
   const [kellyFraction, setKellyFraction] = useState<KellyFraction>(0.5);
+  const [bankroll, setBankroll] = useState<number | null>(null);
+
+  // Load bankroll from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('nba3pm_bankroll');
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed > 0) setBankroll(parsed);
+      }
+    } catch {
+      // localStorage unavailable, stay with null
+    }
+  }, []);
 
   const { signals: rawSignals, signalDate, loading: signalsLoading } = useLatestSignals();
   const signals = usePlayerTeams(rawSignals);
+  const { sizingSignals, totalRisk, activeBets } = useBetSizing(signals, bankroll, kellyFraction);
   const { stats, loading: statsLoading } = usePerformanceStats();
   const { bankrollData, currentBankroll, loading: bankrollLoading } = useBankrollSimulation(kellyFraction, STARTING_BANKROLL);
   const { results, loading: resultsLoading } = useRecentResults(50);
+
+  function handleBankrollChange(value: number | null) {
+    setBankroll(value);
+    try {
+      if (value && value > 0) {
+        localStorage.setItem('nba3pm_bankroll', value.toString());
+      } else {
+        localStorage.removeItem('nba3pm_bankroll');
+      }
+    } catch {
+      // localStorage unavailable
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -57,7 +86,15 @@ export default function Dashboard() {
             <PnLChart data={bankrollData} kellyFraction={kellyFraction} loading={bankrollLoading} />
           </div>
           <div className="lg:col-span-3">
-            <SignalsTable signals={signals} loading={signalsLoading} />
+            <SignalsTable
+              signals={sizingSignals}
+              loading={signalsLoading}
+              bankroll={bankroll}
+              onBankrollChange={handleBankrollChange}
+              totalRisk={totalRisk}
+              activeBets={activeBets}
+              kellyFraction={kellyFraction}
+            />
           </div>
         </div>
 
