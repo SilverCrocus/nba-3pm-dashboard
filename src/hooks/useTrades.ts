@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
+import { getEdgeMultiplier } from './useBetSizing';
 
 // Convert American odds to decimal odds
 function americanToDecimal(americanOdds: number): number {
@@ -186,7 +187,7 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
   useEffect(() => {
     supabase
       .from('paper_trades')
-      .select('signal_date, outcome, odds, kelly_stake')
+      .select('signal_date, outcome, odds, kelly_stake, edge_pct')
       .not('outcome', 'is', null)
       .order('signal_date', { ascending: true })
       .order('created_at', { ascending: true })
@@ -197,7 +198,8 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
           const dailyBankrolls: Record<string, number> = {};
 
           for (const trade of trades) {
-            const stake = bankroll * trade.kelly_stake * kellyFraction;
+            const { multiplier } = getEdgeMultiplier(trade.edge_pct);
+            const stake = bankroll * trade.kelly_stake * kellyFraction * multiplier;
             const decimalOdds = americanToDecimal(trade.odds);
 
             if (trade.outcome === 'win') {
