@@ -60,6 +60,34 @@ src/
 
 All hooks **exclude voided trades** from stats and calculations.
 
+### `useBetSizing.ts`
+
+| Export | Purpose |
+|--------|---------|
+| `getEdgeMultiplier(edgePct)` | Maps absolute edge % to a sizing multiplier and quality label |
+| `useBetSizing(signals, bankroll, kellyFraction)` | Applies Kelly fraction + edge multiplier to compute dollar bets |
+
+## Bet Sizing & Edge Multipliers
+
+The upstream model (`nba-3pm-model`) computes **absolute edge** (`model_prob - implied_prob`) and **full Kelly stake** (capped at 20%). The dashboard applies:
+
+1. **User's Kelly fraction** (Full/Half/Quarter from UI toggle)
+2. **Edge-based multiplier** (hardcoded thresholds in `getEdgeMultiplier()`):
+
+| Absolute Edge | Multiplier | Quality Label |
+|---------------|-----------|---------------|
+| < 3% | 0x | No Bet |
+| 3-5% | 0.25x | Low |
+| 5-15% | 1.0x | Sweet Spot |
+| 15-25% | 0.5x | High |
+| > 25% | 0.25x | Caution |
+
+**Final formula:** `dollarBet = bankroll * kelly_stake * kellyFraction * edgeMultiplier`
+
+`getEdgeMultiplier()` is shared between `useBetSizing` and `useBankrollSimulation` to keep live sizing and historical simulation consistent.
+
+Edge thresholds derived from analysis of 281 resolved trades (Feb 2026). The 10-30% relative edge range (5-15% absolute) showed 63% win rate and was the only profitable zone.
+
 ### `useLiveScores.ts`
 
 | Hook/Function | Purpose |
