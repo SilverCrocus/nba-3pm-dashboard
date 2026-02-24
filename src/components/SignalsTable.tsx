@@ -1,4 +1,4 @@
-import { SizedSignal, KellyFraction } from '@/types/database';
+import { SizedSignal, KellyFraction, EdgeQuality } from '@/types/database';
 
 // Convert American odds to decimal odds for display
 function americanToDecimal(americanOdds: number): number {
@@ -92,7 +92,10 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
               <StatusBadge outcome={signal.outcome} />
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}% edge</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
+                <EdgeBadge quality={signal.edgeQuality} />
+              </div>
               <span className="text-white/50">{signal.bookmaker}</span>
             </div>
             <div className="flex justify-between text-xs mt-1">
@@ -132,7 +135,12 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
               </td>
               <td className="py-3 font-mono text-white/70">{signal.line}</td>
               <td className="py-3 font-mono text-white/70">{americanToDecimal(signal.odds).toFixed(2)}</td>
-              <td className="py-3 text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</td>
+              <td className="py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
+                  <EdgeBadge quality={signal.edgeQuality} />
+                </div>
+              </td>
               <td className="py-3">
                 <BetCell signal={signal} bankroll={bankroll} kellyFraction={kellyFraction} />
               </td>
@@ -150,12 +158,18 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
 
 function BetCell({ signal, bankroll, kellyFraction }: { signal: SizedSignal; bankroll: number | null; kellyFraction: KellyFraction }) {
   if (!bankroll || bankroll <= 0) {
-    return <span className="text-white/40 font-mono text-sm">{(signal.kelly_stake * kellyFraction * 100).toFixed(1)}%</span>;
+    const pct = signal.kelly_stake * kellyFraction * signal.edgeMultiplier * 100;
+    if (pct === 0) return <span className="text-white/30 font-mono text-sm">-</span>;
+    return <span className="text-white/40 font-mono text-sm">{pct.toFixed(1)}%</span>;
+  }
+
+  if (!signal.dollarBet || signal.dollarBet === 0) {
+    return <span className="text-white/30 font-mono text-sm">-</span>;
   }
 
   return (
     <span className="text-green-400 font-medium font-mono text-sm">
-      ${signal.dollarBet!.toFixed(2)}
+      ${signal.dollarBet.toFixed(2)}
     </span>
   );
 }
@@ -174,4 +188,16 @@ function StatusBadge({ outcome }: { outcome: string | null }) {
     return <span className="px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">Push</span>;
   }
   return <span className="px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">Loss</span>;
+}
+
+function EdgeBadge({ quality }: { quality: EdgeQuality }) {
+  const config: Record<EdgeQuality, { label: string; className: string }> = {
+    'no-bet': { label: 'No Bet', className: 'bg-white/10 text-white/40' },
+    'low': { label: 'Low', className: 'bg-yellow-500/20 text-yellow-400' },
+    'sweet-spot': { label: 'Sweet Spot', className: 'bg-green-500/20 text-green-400' },
+    'high': { label: 'High', className: 'bg-orange-500/20 text-orange-400' },
+    'caution': { label: 'Caution', className: 'bg-red-500/20 text-red-400' },
+  };
+  const { label, className } = config[quality];
+  return <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${className}`}>{label}</span>;
 }
