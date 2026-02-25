@@ -1,13 +1,5 @@
 import { SizedSignal, KellyFraction } from '@/types/database';
-
-// Convert American odds to decimal odds for display
-function americanToDecimal(americanOdds: number): number {
-  if (americanOdds < 0) {
-    return 1 + (100 / Math.abs(americanOdds));
-  } else {
-    return 1 + (americanOdds / 100);
-  }
-}
+import { americanToDecimal } from '@/lib/odds';
 
 interface SignalsTableProps {
   signals: SizedSignal[];
