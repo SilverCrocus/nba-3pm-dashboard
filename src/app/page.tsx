@@ -33,7 +33,7 @@ export default function Dashboard() {
   const signals = usePlayerTeams(rawSignals);
   const { sizingSignals, totalRisk, activeBets } = useBetSizing(signals, bankroll, kellyFraction);
   const { stats, loading: statsLoading } = usePerformanceStats();
-  const { bankrollData, currentBankroll, loading: bankrollLoading } = useBankrollSimulation(kellyFraction, STARTING_BANKROLL);
+  const { bankrollData, currentBankroll, loading: bankrollLoading } = useBankrollSimulation(STARTING_BANKROLL);
   const { results, loading: resultsLoading } = useRecentResults(50);
 
   function handleBankrollChange(value: number | null) {

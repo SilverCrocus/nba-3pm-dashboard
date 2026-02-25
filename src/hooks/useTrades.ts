@@ -2,19 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
-import { isSweetSpot } from './useBetSizing';
-
-// Convert American odds to decimal odds
-function americanToDecimal(americanOdds: number): number {
-  if (americanOdds < 0) {
-    // Negative odds (e.g., -128): bet $128 to win $100
-    return 1 + (100 / Math.abs(americanOdds));
-  } else {
-    // Positive odds (e.g., +130): bet $100 to win $130
-    return 1 + (americanOdds / 100);
-  }
-}
+import { PaperTrade, DailyStats, BankrollData } from '@/types/database';
 
 export function useLatestSignals() {
   const [signals, setSignals] = useState<PaperTrade[]>([]);
@@ -179,7 +167,7 @@ export function useRecentResults(limit = 10) {
   return { results, loading };
 }
 
-export function useBankrollSimulation(kellyFraction: KellyFraction, startingBankroll: number = 1000) {
+export function useBankrollSimulation(startingBankroll: number = 1000) {
   const [bankrollData, setBankrollData] = useState<BankrollData[]>([]);
   const [currentBankroll, setCurrentBankroll] = useState(startingBankroll);
   const [loading, setLoading] = useState(true);
@@ -187,7 +175,7 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
   useEffect(() => {
     supabase
       .from('paper_trades')
-      .select('signal_date, outcome, odds, kelly_stake, edge_pct')
+      .select('signal_date, outcome, profit')
       .not('outcome', 'is', null)
       .order('signal_date', { ascending: true })
       .order('created_at', { ascending: true })
@@ -198,18 +186,7 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
           const dailyBankrolls: Record<string, number> = {};
 
           for (const trade of trades) {
-            if (!isSweetSpot(trade.edge_pct)) continue;
-            const stake = bankroll * trade.kelly_stake * kellyFraction;
-            const decimalOdds = americanToDecimal(trade.odds);
-
-            if (trade.outcome === 'win') {
-              bankroll += stake * (decimalOdds - 1);
-            } else if (trade.outcome === 'loss') {
-              bankroll -= stake;
-            }
-            // push: no change
-
-            // Track end-of-day bankroll
+            bankroll += (trade.profit || 0) * startingBankroll;
             dailyBankrolls[trade.signal_date] = bankroll;
           }
 
@@ -222,7 +199,7 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
         }
         setLoading(false);
       });
-  }, [kellyFraction, startingBankroll]);
+  }, [startingBankroll]);
 
   return { bankrollData, currentBankroll, loading };
 }
