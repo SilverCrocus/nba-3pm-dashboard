@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
-import { getEdgeMultiplier } from './useBetSizing';
+import { isSweetSpot } from './useBetSizing';
 
 // Convert American odds to decimal odds
 function americanToDecimal(americanOdds: number): number {
@@ -198,8 +198,8 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
           const dailyBankrolls: Record<string, number> = {};
 
           for (const trade of trades) {
-            const { multiplier } = getEdgeMultiplier(trade.edge_pct);
-            const stake = bankroll * trade.kelly_stake * kellyFraction * multiplier;
+            if (!isSweetSpot(trade.edge_pct)) continue;
+            const stake = bankroll * trade.kelly_stake * kellyFraction;
             const decimalOdds = americanToDecimal(trade.odds);
 
             if (trade.outcome === 'win') {

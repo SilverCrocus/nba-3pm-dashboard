@@ -1,4 +1,4 @@
-import { SizedSignal, KellyFraction, EdgeQuality } from '@/types/database';
+import { SizedSignal, KellyFraction } from '@/types/database';
 
 // Convert American odds to decimal odds for display
 function americanToDecimal(americanOdds: number): number {
@@ -33,7 +33,8 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
     );
   }
 
-  const pendingCount = signals.filter(s => !s.outcome).length;
+  const betSignals = signals.filter(s => s.isSweetSpot);
+  const trackingSignals = signals.filter(s => !s.isSweetSpot);
 
   return (
     <div className="bg-[rgba(38,38,45,0.6)] backdrop-blur-md border border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6">
@@ -69,15 +70,20 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
               Total Risk: <span className="text-orange-400 font-medium">${totalRisk.toFixed(0)} ({((totalRisk / bankroll) * 100).toFixed(1)}%)</span>
             </span>
             <span className="text-white/50">
-              Bets: <span className="text-white/70 font-medium">{activeBets} of {pendingCount}</span>
+              Bets: <span className="text-white/70 font-medium">{activeBets}</span>
+            </span>
+            <span className="text-white/50">
+              Tracking: <span className="text-white/70 font-medium">{trackingSignals.length}</span>
             </span>
           </div>
         )}
       </div>
 
-      {/* Mobile: Card layout */}
+      {/* === BETS SECTION === */}
+
+      {/* Mobile: Bet cards */}
       <div className="md:hidden space-y-3">
-        {signals.map((signal) => (
+        {betSignals.map((signal) => (
           <div key={signal.signal_id} className="bg-white/5 rounded-xl p-3">
             <div className="flex justify-between items-start mb-2">
               <div>
@@ -92,10 +98,7 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
               <StatusBadge outcome={signal.outcome} />
             </div>
             <div className="flex justify-between text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
-                <EdgeBadge quality={signal.edgeQuality} />
-              </div>
+              <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
               <span className="text-white/50">{signal.bookmaker}</span>
             </div>
             <div className="flex justify-between text-xs mt-1">
@@ -106,7 +109,7 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
         ))}
       </div>
 
-      {/* Desktop: Table layout */}
+      {/* Desktop: Bet table */}
       <table className="w-full hidden md:table">
         <thead>
           <tr className="text-white/40 text-xs uppercase tracking-wider border-b border-white/10">
@@ -120,7 +123,7 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
           </tr>
         </thead>
         <tbody className="text-white/80">
-          {signals.map((signal) => (
+          {betSignals.map((signal) => (
             <tr key={signal.signal_id} className="border-b border-white/5">
               <td className="py-3">
                 <div>
@@ -136,10 +139,7 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
               <td className="py-3 font-mono text-white/70">{signal.line}</td>
               <td className="py-3 font-mono text-white/70">{americanToDecimal(signal.odds).toFixed(2)}</td>
               <td className="py-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
-                  <EdgeBadge quality={signal.edgeQuality} />
-                </div>
+                <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
               </td>
               <td className="py-3">
                 <BetCell signal={signal} bankroll={bankroll} kellyFraction={kellyFraction} />
@@ -152,18 +152,87 @@ export function SignalsTable({ signals, loading, bankroll, onBankrollChange, tot
           ))}
         </tbody>
       </table>
+
+      {/* === TRACKING SECTION === */}
+      {trackingSignals.length > 0 && (
+        <div className="mt-6 pt-6 border-t border-white/10">
+          <h4 className="text-sm font-medium text-white/40 uppercase tracking-wider mb-3">Tracking ({trackingSignals.length})</h4>
+
+          {/* Mobile: Tracking cards */}
+          <div className="md:hidden space-y-3">
+            {trackingSignals.map((signal) => (
+              <div key={signal.signal_id} className="bg-white/5 rounded-xl p-3 opacity-60">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-white text-sm">{signal.player_name}</p>
+                      {signal.team && (
+                        <span className="text-[10px] text-white/50 font-medium">{signal.team}</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} @ {americanToDecimal(signal.odds).toFixed(2)}</p>
+                  </div>
+                  <StatusBadge outcome={signal.outcome} />
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-green-400/70 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
+                  <span className="text-white/50">{signal.bookmaker}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: Tracking table */}
+          <table className="w-full hidden md:table">
+            <thead>
+              <tr className="text-white/30 text-xs uppercase tracking-wider border-b border-white/10">
+                <th className="text-left pb-3">Player</th>
+                <th className="text-left pb-3">Line</th>
+                <th className="text-left pb-3">Odds</th>
+                <th className="text-left pb-3">Edge</th>
+                <th className="text-left pb-3">Book</th>
+                <th className="text-right pb-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="text-white/50">
+              {trackingSignals.map((signal) => (
+                <tr key={signal.signal_id} className="border-b border-white/5">
+                  <td className="py-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white/60">{signal.player_name}</p>
+                        {signal.team && (
+                          <span className="text-xs text-white/30 font-medium">{signal.team}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-white/30">{signal.side.toUpperCase()} {signal.line}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 font-mono text-white/40">{signal.line}</td>
+                  <td className="py-3 font-mono text-white/40">{americanToDecimal(signal.odds).toFixed(2)}</td>
+                  <td className="py-3">
+                    <span className="text-green-400/50 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
+                  </td>
+                  <td className="py-3 text-white/40">{signal.bookmaker}</td>
+                  <td className="py-3 text-right">
+                    <StatusBadge outcome={signal.outcome} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
 function BetCell({ signal, bankroll, kellyFraction }: { signal: SizedSignal; bankroll: number | null; kellyFraction: KellyFraction }) {
   if (!bankroll || bankroll <= 0) {
-    const pct = signal.kelly_stake * kellyFraction * signal.edgeMultiplier * 100;
-    if (pct === 0) return <span className="text-white/30 font-mono text-sm">-</span>;
-    return <span className="text-white/40 font-mono text-sm">{pct.toFixed(1)}%</span>;
+    return <span className="text-white/40 font-mono text-sm">{(signal.kelly_stake * kellyFraction * 100).toFixed(1)}%</span>;
   }
 
-  if (!signal.dollarBet || signal.dollarBet === 0) {
+  if (!signal.dollarBet) {
     return <span className="text-white/30 font-mono text-sm">-</span>;
   }
 
@@ -188,16 +257,4 @@ function StatusBadge({ outcome }: { outcome: string | null }) {
     return <span className="px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">Push</span>;
   }
   return <span className="px-2 md:px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">Loss</span>;
-}
-
-function EdgeBadge({ quality }: { quality: EdgeQuality }) {
-  const config: Record<EdgeQuality, { label: string; className: string }> = {
-    'no-bet': { label: 'No Bet', className: 'bg-white/10 text-white/40' },
-    'low': { label: 'Low', className: 'bg-yellow-500/20 text-yellow-400' },
-    'sweet-spot': { label: 'Sweet Spot', className: 'bg-green-500/20 text-green-400' },
-    'high': { label: 'High', className: 'bg-orange-500/20 text-orange-400' },
-    'caution': { label: 'Caution', className: 'bg-red-500/20 text-red-400' },
-  };
-  const { label, className } = config[quality];
-  return <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${className}`}>{label}</span>;
 }

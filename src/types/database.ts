@@ -31,12 +31,9 @@ export interface DailyStats {
 
 export type KellyFraction = 1 | 0.5 | 0.25;
 
-export type EdgeQuality = 'no-bet' | 'low' | 'sweet-spot' | 'high' | 'caution';
-
 export interface SizedSignal extends PaperTrade {
   dollarBet: number | null;
-  edgeMultiplier: number;
-  edgeQuality: EdgeQuality;
+  isSweetSpot: boolean;
 }
 
 export interface BankrollData {
