@@ -3,6 +3,16 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
+import { isSweetSpot } from './useBetSizing';
+
+// From this date onwards, only sweet-spot trades (5-15% edge) count in stats/simulation.
+// Before this date, all trades count (user was betting on everything).
+const SWEET_SPOT_CUTOFF = '2026-02-24';
+
+function isActiveTrade(trade: { signal_date: string; edge_pct: number }): boolean {
+  if (trade.signal_date < SWEET_SPOT_CUTOFF) return true;
+  return isSweetSpot(trade.edge_pct);
+}
 
 export function useLatestSignals() {
   const [signals, setSignals] = useState<PaperTrade[]>([]);
@@ -74,10 +84,10 @@ export function usePerformanceStats() {
   useEffect(() => {
     supabase
       .from('paper_trades')
-      .select('outcome, profit')
+      .select('outcome, profit, signal_date, edge_pct')
       .then(({ data, error }) => {
         if (!error && data) {
-          const reconciled = data.filter(d => d.outcome && d.outcome !== 'voided');
+          const reconciled = data.filter(d => d.outcome && d.outcome !== 'voided' && isActiveTrade(d));
           const pending = data.filter(d => !d.outcome);
           const voided = data.filter(d => d.outcome === 'voided').length;
           const wins = reconciled.filter(d => d.outcome === 'win').length;
@@ -108,12 +118,12 @@ export function useDailyPnL() {
   useEffect(() => {
     supabase
       .from('paper_trades')
-      .select('signal_date, outcome, profit, kelly_stake')
+      .select('signal_date, outcome, profit, kelly_stake, edge_pct')
       .not('outcome', 'is', null)
       .order('signal_date', { ascending: true })
       .then(({ data, error }) => {
         if (!error && data) {
-          const trades = data.filter(d => d.outcome !== 'voided');
+          const trades = data.filter(d => d.outcome !== 'voided' && isActiveTrade(d));
           // Group by date
           const byDate = trades.reduce((acc, trade) => {
             const date = trade.signal_date;
@@ -157,9 +167,9 @@ export function useRecentResults(limit = 10) {
       .select('*')
       .not('outcome', 'is', null)
       .order('signal_date', { ascending: false })
-      .limit(limit)
+      .limit(limit * 2) // fetch extra to account for filtered-out non-sweet-spot trades
       .then(({ data, error }) => {
-        if (!error && data) setResults(data.filter(d => d.outcome !== 'voided'));
+        if (!error && data) setResults(data.filter(d => d.outcome !== 'voided' && isActiveTrade(d)).slice(0, limit));
         setLoading(false);
       });
   }, [limit]);
@@ -175,13 +185,13 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
   useEffect(() => {
     supabase
       .from('paper_trades')
-      .select('signal_date, outcome, profit')
+      .select('signal_date, outcome, profit, edge_pct')
       .not('outcome', 'is', null)
       .order('signal_date', { ascending: true })
       .order('created_at', { ascending: true })
       .then(({ data, error }) => {
         if (!error && data) {
-          const trades = data.filter(d => d.outcome !== 'voided');
+          const trades = data.filter(d => d.outcome !== 'voided' && isActiveTrade(d));
           let bankroll = startingBankroll;
           const dailyBankrolls: Record<string, number> = {};
 
