@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PaperTrade, DailyStats, BankrollData } from '@/types/database';
+import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
 
 export function useLatestSignals() {
   const [signals, setSignals] = useState<PaperTrade[]>([]);
@@ -167,7 +167,7 @@ export function useRecentResults(limit = 10) {
   return { results, loading };
 }
 
-export function useBankrollSimulation(startingBankroll: number = 1000) {
+export function useBankrollSimulation(kellyFraction: KellyFraction, startingBankroll: number = 1000) {
   const [bankrollData, setBankrollData] = useState<BankrollData[]>([]);
   const [currentBankroll, setCurrentBankroll] = useState(startingBankroll);
   const [loading, setLoading] = useState(true);
@@ -186,7 +186,7 @@ export function useBankrollSimulation(startingBankroll: number = 1000) {
           const dailyBankrolls: Record<string, number> = {};
 
           for (const trade of trades) {
-            bankroll += (trade.profit || 0) * startingBankroll;
+            bankroll += (trade.profit || 0) * startingBankroll * kellyFraction;
             dailyBankrolls[trade.signal_date] = bankroll;
           }
 
@@ -199,7 +199,7 @@ export function useBankrollSimulation(startingBankroll: number = 1000) {
         }
         setLoading(false);
       });
-  }, [startingBankroll]);
+  }, [kellyFraction, startingBankroll]);
 
   return { bankrollData, currentBankroll, loading };
 }
