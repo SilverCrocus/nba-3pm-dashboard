@@ -1,6 +1,16 @@
-import { GameWithSignals } from '@/types/database';
+import { GameWithSignals, EnrichedSignal } from '@/types/database';
+import { isSweetSpot } from '@/hooks/useBetSizing';
 import { LiveStatusBadge } from './LiveStatusBadge';
 import { CourtStatus } from './CourtStatus';
+
+function sortSignals(signals: EnrichedSignal[]): EnrichedSignal[] {
+  return [...signals].sort((a, b) => {
+    const aSweet = isSweetSpot(a.edge_pct) ? 0 : 1;
+    const bSweet = isSweetSpot(b.edge_pct) ? 0 : 1;
+    if (aSweet !== bSweet) return aSweet - bSweet;
+    return b.edge_pct - a.edge_pct;
+  });
+}
 
 function formatStartTime(utc: string): string {
   if (!utc) return '';
@@ -54,29 +64,36 @@ export function GameCard({ game, signals }: GameWithSignals) {
 
       {/* Signal Rows - Mobile */}
       <div className="md:hidden p-3 space-y-2">
-        {signals.map((s) => (
-          <div key={s.signal_id} className="bg-white/5 rounded-xl p-3">
-            <div className="flex justify-between items-start mb-1.5">
-              <div>
-                <p className="font-medium text-white text-sm">{s.player_name}</p>
-                <p className="text-xs text-white/40">{s.side.toUpperCase()} {s.line}</p>
+        {sortSignals(signals).map((s) => {
+          const sweet = isSweetSpot(s.edge_pct);
+          return (
+            <div key={s.signal_id} className={`bg-white/5 rounded-xl p-3 ${sweet ? '' : 'opacity-40'}`}>
+              <div className="flex justify-between items-start mb-1.5">
+                <div>
+                  <p className="font-medium text-white text-sm">{s.player_name}</p>
+                  <p className="text-xs text-white/40">{s.side.toUpperCase()} {s.line}</p>
+                </div>
+                <LiveStatusBadge status={s.signalStatus} />
               </div>
-              <LiveStatusBadge status={s.signalStatus} />
-            </div>
-            <div className="flex justify-between items-center text-xs">
-              <div className="flex items-center gap-3">
-                {s.liveThreePointersMade !== null && (
-                  <span className="text-white font-mono">
-                    <span className="text-white/40">3PM: </span>
-                    <span className="text-lg font-bold">{s.liveThreePointersMade}</span>
-                  </span>
+              <div className="flex justify-between items-center text-xs">
+                <div className="flex items-center gap-3">
+                  {s.liveThreePointersMade !== null && (
+                    <span className="text-white font-mono">
+                      <span className="text-white/40">3PM: </span>
+                      <span className="text-lg font-bold">{s.liveThreePointersMade}</span>
+                    </span>
+                  )}
+                  <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
+                </div>
+                {sweet ? (
+                  <span className="text-green-400 font-medium">+{s.edge_pct.toFixed(1)}%</span>
+                ) : (
+                  <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-white/50 text-[10px] font-medium">TRACKING ONLY</span>
                 )}
-                <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
               </div>
-              <span className="text-green-400 font-medium">+{s.edge_pct.toFixed(1)}%</span>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Signal Rows - Desktop Table */}
@@ -93,36 +110,45 @@ export function GameCard({ game, signals }: GameWithSignals) {
           </tr>
         </thead>
         <tbody>
-          {signals.map((s) => (
-            <tr key={s.signal_id} className="border-b border-white/[0.04]">
-              <td className="px-6 py-3">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-white">{s.player_name}</p>
-                  {s.team && <span className="text-xs text-white/40 font-medium">{s.team}</span>}
-                </div>
-              </td>
-              <td className="px-3 py-3 text-center">
-                {s.liveThreePointersMade !== null ? (
-                  <span className="text-white font-mono text-lg font-bold">{s.liveThreePointersMade}</span>
-                ) : (
-                  <span className="text-white/30">—</span>
-                )}
-              </td>
-              <td className="px-3 py-3 text-center text-white/70 font-mono">{s.line}</td>
-              <td className="px-3 py-3 text-center">
-                <span className={`text-xs font-medium ${s.side === 'over' ? 'text-green-400' : 'text-red-400'}`}>
-                  {s.side.toUpperCase()}
-                </span>
-              </td>
-              <td className="px-3 py-3 text-center text-green-400 font-medium text-sm">+{s.edge_pct.toFixed(1)}%</td>
-              <td className="px-3 py-3 text-center">
-                <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
-              </td>
-              <td className="px-6 py-3 text-right">
-                <LiveStatusBadge status={s.signalStatus} />
-              </td>
-            </tr>
-          ))}
+          {sortSignals(signals).map((s) => {
+            const sweet = isSweetSpot(s.edge_pct);
+            return (
+              <tr key={s.signal_id} className={`border-b border-white/[0.04] ${sweet ? '' : 'opacity-40'}`}>
+                <td className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-white">{s.player_name}</p>
+                    {s.team && <span className="text-xs text-white/40 font-medium">{s.team}</span>}
+                  </div>
+                </td>
+                <td className="px-3 py-3 text-center">
+                  {s.liveThreePointersMade !== null ? (
+                    <span className="text-white font-mono text-lg font-bold">{s.liveThreePointersMade}</span>
+                  ) : (
+                    <span className="text-white/30">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-3 text-center text-white/70 font-mono">{s.line}</td>
+                <td className="px-3 py-3 text-center">
+                  <span className={`text-xs font-medium ${s.side === 'over' ? 'text-green-400' : 'text-red-400'}`}>
+                    {s.side.toUpperCase()}
+                  </span>
+                </td>
+                <td className="px-3 py-3 text-center">
+                  {sweet ? (
+                    <span className="text-green-400 font-medium text-sm">+{s.edge_pct.toFixed(1)}%</span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/50 text-[10px] font-medium">TRACKING ONLY</span>
+                  )}
+                </td>
+                <td className="px-3 py-3 text-center">
+                  <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <LiveStatusBadge status={s.signalStatus} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

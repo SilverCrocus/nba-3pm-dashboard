@@ -2,9 +2,20 @@
 
 import { useLatestSignals } from '@/hooks/useTrades';
 import { useLiveScores, useLiveSignals } from '@/hooks/useLiveScores';
+import { isSweetSpot } from '@/hooks/useBetSizing';
 import { LiveHeader } from '@/components/LiveHeader';
 import { GameCard } from '@/components/GameCard';
 import { LiveStatusBadge } from '@/components/LiveStatusBadge';
+import { EnrichedSignal } from '@/types/database';
+
+function sortSignals(signals: EnrichedSignal[]): EnrichedSignal[] {
+  return [...signals].sort((a, b) => {
+    const aSweet = isSweetSpot(a.edge_pct) ? 0 : 1;
+    const bSweet = isSweetSpot(b.edge_pct) ? 0 : 1;
+    if (aSweet !== bSweet) return aSweet - bSweet;
+    return b.edge_pct - a.edge_pct;
+  });
+}
 
 export default function LiveTracker() {
   const { signals, signalDate, loading: signalsLoading } = useLatestSignals();
@@ -49,21 +60,28 @@ export default function LiveTracker() {
 
                 {/* Mobile */}
                 <div className="md:hidden p-3 space-y-2">
-                  {unmatchedSignals.map((s) => (
-                    <div key={s.signal_id} className="bg-white/5 rounded-xl p-3">
-                      <div className="flex justify-between items-start mb-1.5">
-                        <div>
-                          <p className="font-medium text-white text-sm">{s.player_name}</p>
-                          <p className="text-xs text-white/40">{s.side.toUpperCase()} {s.line}</p>
+                  {sortSignals(unmatchedSignals).map((s) => {
+                    const sweet = isSweetSpot(s.edge_pct);
+                    return (
+                      <div key={s.signal_id} className={`bg-white/5 rounded-xl p-3 ${sweet ? '' : 'opacity-40'}`}>
+                        <div className="flex justify-between items-start mb-1.5">
+                          <div>
+                            <p className="font-medium text-white text-sm">{s.player_name}</p>
+                            <p className="text-xs text-white/40">{s.side.toUpperCase()} {s.line}</p>
+                          </div>
+                          <LiveStatusBadge status={s.signalStatus} />
                         </div>
-                        <LiveStatusBadge status={s.signalStatus} />
+                        <div className="flex justify-between text-xs">
+                          {sweet ? (
+                            <span className="text-green-400 font-medium">+{s.edge_pct.toFixed(1)}%</span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-white/50 text-[10px] font-medium">TRACKING ONLY</span>
+                          )}
+                          <span className="text-white/50">{s.bookmaker}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-green-400 font-medium">+{s.edge_pct.toFixed(1)}%</span>
-                        <span className="text-white/50">{s.bookmaker}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Desktop */}
@@ -79,24 +97,33 @@ export default function LiveTracker() {
                     </tr>
                   </thead>
                   <tbody>
-                    {unmatchedSignals.map((s) => (
-                      <tr key={s.signal_id} className="border-b border-white/[0.04]">
-                        <td className="px-6 py-3">
-                          <p className="font-medium text-white">{s.player_name}</p>
-                        </td>
-                        <td className="px-3 py-3 text-center text-white/70 font-mono">{s.line}</td>
-                        <td className="px-3 py-3 text-center">
-                          <span className={`text-xs font-medium ${s.side === 'over' ? 'text-green-400' : 'text-red-400'}`}>
-                            {s.side.toUpperCase()}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-center text-green-400 font-medium text-sm">+{s.edge_pct.toFixed(1)}%</td>
-                        <td className="px-3 py-3 text-center text-white/50">{s.bookmaker}</td>
-                        <td className="px-6 py-3 text-right">
-                          <LiveStatusBadge status={s.signalStatus} />
-                        </td>
-                      </tr>
-                    ))}
+                    {sortSignals(unmatchedSignals).map((s) => {
+                      const sweet = isSweetSpot(s.edge_pct);
+                      return (
+                        <tr key={s.signal_id} className={`border-b border-white/[0.04] ${sweet ? '' : 'opacity-40'}`}>
+                          <td className="px-6 py-3">
+                            <p className="font-medium text-white">{s.player_name}</p>
+                          </td>
+                          <td className="px-3 py-3 text-center text-white/70 font-mono">{s.line}</td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`text-xs font-medium ${s.side === 'over' ? 'text-green-400' : 'text-red-400'}`}>
+                              {s.side.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {sweet ? (
+                              <span className="text-green-400 font-medium text-sm">+{s.edge_pct.toFixed(1)}%</span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/50 text-[10px] font-medium">TRACKING ONLY</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-center text-white/50">{s.bookmaker}</td>
+                          <td className="px-6 py-3 text-right">
+                            <LiveStatusBadge status={s.signalStatus} />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
