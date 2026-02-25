@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
 import { isSweetSpot } from './useBetSizing';
+import { americanToDecimal } from '@/lib/odds';
 
 // From this date onwards, only sweet-spot trades (5-15% edge) count in stats/simulation.
 // Before this date, all trades count (user was betting on everything).
@@ -185,7 +186,7 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
   useEffect(() => {
     supabase
       .from('paper_trades')
-      .select('signal_date, outcome, profit, edge_pct')
+      .select('signal_date, outcome, profit, edge_pct, kelly_stake, odds')
       .not('outcome', 'is', null)
       .order('signal_date', { ascending: true })
       .order('created_at', { ascending: true })
@@ -196,7 +197,16 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
           const dailyBankrolls: Record<string, number> = {};
 
           for (const trade of trades) {
-            bankroll += (trade.profit || 0) * startingBankroll * kellyFraction;
+            const dollarBet = bankroll * trade.kelly_stake * kellyFraction;
+            const decimalOdds = americanToDecimal(trade.odds);
+
+            if (trade.outcome === 'win') {
+              bankroll += dollarBet * (decimalOdds - 1);
+            } else if (trade.outcome === 'loss') {
+              bankroll -= dollarBet;
+            }
+            // push: no change
+
             dailyBankrolls[trade.signal_date] = bankroll;
           }
 
