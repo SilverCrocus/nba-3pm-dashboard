@@ -1,12 +1,18 @@
 import { useMemo } from 'react';
 import { PaperTrade, KellyFraction, SizedSignal } from '@/types/database';
 
-const SWEET_SPOT_MIN = 5;
-const SWEET_SPOT_MAX = 15;
-const MAX_RISK_PCT = 0.15;
+export const MAX_BET_PCT = 0.05;   // Per-bet cap: no single trade risks more than 5%
+export const MAX_RISK_PCT = 0.15;  // Daily exposure cap: 15% of bankroll
+
+export function getEdgeMultiplier(edgePct: number): { multiplier: number; label: string } {
+  if (edgePct < 5) return { multiplier: 0, label: 'Skip' };
+  if (edgePct < 10) return { multiplier: 1.0, label: 'Core' };
+  if (edgePct < 25) return { multiplier: 0.5, label: 'Reduced' };
+  return { multiplier: 0.25, label: 'Caution' };
+}
 
 export function isSweetSpot(edgePct: number): boolean {
-  return edgePct >= SWEET_SPOT_MIN && edgePct <= SWEET_SPOT_MAX;
+  return getEdgeMultiplier(edgePct).multiplier > 0;
 }
 
 export function useBetSizing(
@@ -24,10 +30,12 @@ export function useBetSizing(
       return { sizingSignals, totalRisk: 0, activeBets: 0 };
     }
 
-    // Calculate raw bets for sweet spot signals only
+    // Calculate raw bets using edge multiplier and per-bet cap
     const withRawBets = signals.map(s => {
       const sweet = isSweetSpot(s.edge_pct);
-      const rawBet = sweet ? bankroll * s.kelly_stake * kellyFraction : 0;
+      const { multiplier } = getEdgeMultiplier(s.edge_pct);
+      const cappedStake = Math.min(s.kelly_stake, MAX_BET_PCT);
+      const rawBet = multiplier > 0 ? bankroll * cappedStake * kellyFraction * multiplier : 0;
       return { signal: s, sweet, rawBet };
     });
 
@@ -36,7 +44,7 @@ export function useBetSizing(
       .filter(x => x.rawBet > 0 && !x.signal.outcome)
       .reduce((sum, x) => sum + x.rawBet, 0);
 
-    // Scale down if over risk cap
+    // Scale down if over daily risk cap
     const maxRisk = bankroll * MAX_RISK_PCT;
     const scale = rawTotal > maxRisk ? maxRisk / rawTotal : 1;
 

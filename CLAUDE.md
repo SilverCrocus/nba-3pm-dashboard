@@ -64,28 +64,33 @@ All hooks **exclude voided trades** from stats and calculations.
 | Export | Purpose |
 |--------|---------|
 | `getEdgeMultiplier(edgePct)` | Maps absolute edge % to a sizing multiplier and quality label |
-| `useBetSizing(signals, bankroll, kellyFraction)` | Applies Kelly fraction + edge multiplier to compute dollar bets |
+| `isSweetSpot(edgePct)` | Returns true if edge qualifies for a bet (multiplier > 0, i.e. edge >= 5%) |
+| `MAX_BET_PCT` (0.05) | Per-bet cap — no single trade risks more than 5% of bankroll |
+| `MAX_RISK_PCT` (0.15) | Daily exposure cap — total bets for a day capped at 15% of bankroll |
+| `useBetSizing(signals, bankroll, kellyFraction)` | Applies Kelly fraction + edge multiplier + caps to compute dollar bets |
 
 ## Bet Sizing & Edge Multipliers
 
 The upstream model (`nba-3pm-model`) computes **absolute edge** (`model_prob - implied_prob`) and **full Kelly stake** (capped at 20%). The dashboard applies:
 
-1. **User's Kelly fraction** (Full/Half/Quarter from UI toggle)
-2. **Edge-based multiplier** (hardcoded thresholds in `getEdgeMultiplier()`):
+1. **Per-bet cap**: `kelly_stake` capped at 5% (`MAX_BET_PCT`)
+2. **User's Kelly fraction** (Full/Half/Quarter from UI toggle)
+3. **Edge-based multiplier** (hardcoded thresholds in `getEdgeMultiplier()`):
 
-| Absolute Edge | Multiplier | Quality Label |
-|---------------|-----------|---------------|
-| < 3% | 0x | No Bet |
-| 3-5% | 0.25x | Low |
-| 5-15% | 1.0x | Sweet Spot |
-| 15-25% | 0.5x | High |
-| > 25% | 0.25x | Caution |
+| Absolute Edge | Multiplier | Label |
+|---------------|-----------|-------|
+| < 5% | 0x | Skip |
+| 5-10% | 1.0x | Core |
+| 10-25% | 0.5x | Reduced |
+| 25%+ | 0.25x | Caution |
 
-**Final formula:** `dollarBet = bankroll * kelly_stake * kellyFraction * edgeMultiplier`
+4. **Daily risk cap**: If total bets for a day exceed 15% of bankroll (`MAX_RISK_PCT`), all bets are scaled proportionally.
 
-`getEdgeMultiplier()` is shared between `useBetSizing` and `useBankrollSimulation` to keep live sizing and historical simulation consistent.
+**Final formula:** `dollarBet = bankroll * min(kelly_stake, 0.05) * kellyFraction * edgeMultiplier * dailyScale`
 
-Edge thresholds derived from analysis of 281 resolved trades (Feb 2026). The 10-30% relative edge range (5-15% absolute) showed 63% win rate and was the only profitable zone.
+`getEdgeMultiplier()` and caps are shared between `useBetSizing` and `useBankrollSimulation` to keep live sizing and historical simulation consistent.
+
+Edge thresholds derived from analysis of 314 resolved trades (Feb 2026). The 5-10% range is the profit engine; 10-25% is included at reduced sizing; previously excluded 15-25% range was profitable on 76 trades.
 
 ### `useLiveScores.ts`
 

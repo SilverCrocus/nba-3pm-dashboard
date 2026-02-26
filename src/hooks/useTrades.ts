@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, KellyFraction, BankrollData } from '@/types/database';
-import { isSweetSpot } from './useBetSizing';
+import { getEdgeMultiplier, MAX_BET_PCT, MAX_RISK_PCT } from './useBetSizing';
 import { americanToDecimal } from '@/lib/odds';
 
 // From this date onwards, only sweet-spot trades (5-15% edge) count in stats/simulation.
@@ -12,7 +12,7 @@ const SWEET_SPOT_CUTOFF = '2026-02-24';
 
 function isActiveTrade(trade: { signal_date: string; edge_pct: number }): boolean {
   if (trade.signal_date < SWEET_SPOT_CUTOFF) return true;
-  return isSweetSpot(trade.edge_pct);
+  return getEdgeMultiplier(trade.edge_pct).multiplier > 0;
 }
 
 export function useLatestSignals() {
@@ -149,33 +149,50 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
       .then(({ data, error }) => {
         if (!error && data) {
           const trades = data.filter(d => d.outcome !== 'voided' && isActiveTrade(d));
-          let bankroll = startingBankroll;
-          const dailyBankrolls: Record<string, number> = {};
 
+          // Group trades by signal_date
+          const dayGroups = new Map<string, typeof trades>();
           for (const trade of trades) {
-            const dollarBet = bankroll * trade.kelly_stake * kellyFraction;
-            const decimalOdds = americanToDecimal(trade.odds);
-
-            if (trade.outcome === 'win') {
-              bankroll += dollarBet * (decimalOdds - 1);
-            } else if (trade.outcome === 'loss') {
-              bankroll -= dollarBet;
-            }
-            // push: no change
-
-            dailyBankrolls[trade.signal_date] = bankroll;
+            const group = dayGroups.get(trade.signal_date) ?? [];
+            group.push(trade);
+            dayGroups.set(trade.signal_date, group);
           }
 
-          const bankrollTimeSeries: BankrollData[] = Object.entries(dailyBankrolls).map(
-            ([date, bankroll]) => ({ date, bankroll })
-          );
-
-          // Compute daily dollar changes from the bankroll series
+          let bankroll = startingBankroll;
+          const bankrollTimeSeries: BankrollData[] = [];
           const changes: Record<string, number> = {};
-          let prev = startingBankroll;
-          for (const { date, bankroll: endOfDay } of bankrollTimeSeries) {
-            changes[date] = endOfDay - prev;
-            prev = endOfDay;
+
+          for (const [date, dayTrades] of dayGroups) {
+            const startOfDay = bankroll;
+            const maxRisk = bankroll * MAX_RISK_PCT;
+
+            // Compute raw bet per trade
+            const sized = dayTrades.map(trade => {
+              const isPreCutoff = trade.signal_date < SWEET_SPOT_CUTOFF;
+              const multiplier = isPreCutoff ? 1.0 : getEdgeMultiplier(trade.edge_pct).multiplier;
+              const cappedStake = Math.min(trade.kelly_stake, MAX_BET_PCT);
+              const rawBet = bankroll * cappedStake * kellyFraction * multiplier;
+              return { trade, rawBet };
+            });
+
+            // Apply daily risk cap: scale proportionally if total exceeds limit
+            const rawTotal = sized.reduce((sum, s) => sum + s.rawBet, 0);
+            const scale = rawTotal > maxRisk ? maxRisk / rawTotal : 1;
+
+            for (const { trade, rawBet } of sized) {
+              const scaledBet = rawBet * scale;
+              const decimalOdds = americanToDecimal(trade.odds);
+
+              if (trade.outcome === 'win') {
+                bankroll += scaledBet * (decimalOdds - 1);
+              } else if (trade.outcome === 'loss') {
+                bankroll -= scaledBet;
+              }
+              // push: no change
+            }
+
+            bankrollTimeSeries.push({ date, bankroll });
+            changes[date] = bankroll - startOfDay;
           }
 
           setBankrollData(bankrollTimeSeries);
