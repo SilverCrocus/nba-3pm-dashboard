@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PaperTrade, DailyStats, KellyFraction, BankrollData } from '@/types/database';
+import { PaperTrade, KellyFraction, BankrollData } from '@/types/database';
 import { isSweetSpot } from './useBetSizing';
 import { americanToDecimal } from '@/lib/odds';
 
@@ -112,51 +112,6 @@ export function usePerformanceStats() {
   return { stats, loading };
 }
 
-export function useDailyPnL() {
-  const [dailyData, setDailyData] = useState<DailyStats[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase
-      .from('paper_trades')
-      .select('signal_date, outcome, profit, kelly_stake, edge_pct')
-      .not('outcome', 'is', null)
-      .order('signal_date', { ascending: true })
-      .then(({ data, error }) => {
-        if (!error && data) {
-          const trades = data.filter(d => d.outcome !== 'voided' && isActiveTrade(d));
-          // Group by date
-          const byDate = trades.reduce((acc, trade) => {
-            const date = trade.signal_date;
-            if (!acc[date]) {
-              acc[date] = { bets: 0, wins: 0, losses: 0, profit: 0 };
-            }
-            acc[date].bets++;
-            if (trade.outcome === 'win') acc[date].wins++;
-            if (trade.outcome === 'loss') acc[date].losses++;
-            acc[date].profit += trade.profit || 0;
-            return acc;
-          }, {} as Record<string, { bets: number; wins: number; losses: number; profit: number }>);
-
-          // Convert to array with cumulative
-          let cumulative = 0;
-          const dailyStats: DailyStats[] = Object.entries(byDate).map(([date, stats]) => {
-            cumulative += stats.profit;
-            return {
-              date,
-              ...stats,
-              cumulative_profit: cumulative,
-            };
-          });
-
-          setDailyData(dailyStats);
-        }
-        setLoading(false);
-      });
-  }, []);
-
-  return { dailyData, loading };
-}
 
 export function useRecentResults(limit = 10) {
   const [results, setResults] = useState<PaperTrade[]>([]);
@@ -180,6 +135,7 @@ export function useRecentResults(limit = 10) {
 
 export function useBankrollSimulation(kellyFraction: KellyFraction, startingBankroll: number = 1000) {
   const [bankrollData, setBankrollData] = useState<BankrollData[]>([]);
+  const [dailyChanges, setDailyChanges] = useState<Record<string, number>>({});
   const [currentBankroll, setCurrentBankroll] = useState(startingBankroll);
   const [loading, setLoading] = useState(true);
 
@@ -214,12 +170,21 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
             ([date, bankroll]) => ({ date, bankroll })
           );
 
+          // Compute daily dollar changes from the bankroll series
+          const changes: Record<string, number> = {};
+          let prev = startingBankroll;
+          for (const { date, bankroll: endOfDay } of bankrollTimeSeries) {
+            changes[date] = endOfDay - prev;
+            prev = endOfDay;
+          }
+
           setBankrollData(bankrollTimeSeries);
+          setDailyChanges(changes);
           setCurrentBankroll(bankroll);
         }
         setLoading(false);
       });
   }, [kellyFraction, startingBankroll]);
 
-  return { bankrollData, currentBankroll, loading };
+  return { bankrollData, dailyChanges, currentBankroll, loading };
 }

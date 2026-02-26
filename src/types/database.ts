@@ -20,15 +20,6 @@ export interface PaperTrade {
   created_at: string;
 }
 
-export interface DailyStats {
-  date: string;
-  bets: number;
-  wins: number;
-  losses: number;
-  profit: number;
-  cumulative_profit: number;
-}
-
 export type KellyFraction = 1 | 0.5 | 0.25;
 
 export interface SizedSignal extends PaperTrade {

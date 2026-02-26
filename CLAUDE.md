@@ -53,10 +53,9 @@ src/
 | Hook | Purpose |
 |------|---------|
 | `useLatestSignals()` | Fetch latest signals — picks the most recent `signal_date` with pending outcomes, falls back to latest date overall. Timezone-agnostic. Returns `{ signals, signalDate, loading }`. |
-| `usePerformanceStats()` | Win rate, total P&L, wins/losses/voided counts |
-| `useDailyPnL()` | Daily profit grouped by date with cumulative total |
+| `usePerformanceStats()` | Win rate, wins/losses/voided counts |
 | `useRecentResults(limit)` | Last N reconciled trades |
-| `useBankrollSimulation(kellyFraction, startingBankroll)` | Simulates bankroll growth with Kelly criterion |
+| `useBankrollSimulation(kellyFraction, startingBankroll)` | Simulates bankroll growth with Kelly compounding. Returns `{ bankrollData, dailyChanges, currentBankroll, loading }`. `dailyChanges` maps each date to its compounded dollar P&L. |
 
 All hooks **exclude voided trades** from stats and calculations.
 

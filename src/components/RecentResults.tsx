@@ -3,6 +3,7 @@ import { PaperTrade } from '@/types/database';
 interface RecentResultsProps {
   results: PaperTrade[];
   loading: boolean;
+  dailyPnL: Record<string, number>;
 }
 
 interface DailyAggregate {
@@ -47,7 +48,7 @@ function aggregateByDay(results: PaperTrade[]): DailyAggregate[] {
   return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function RecentResults({ results, loading }: RecentResultsProps) {
+export function RecentResults({ results, loading, dailyPnL }: RecentResultsProps) {
   if (loading) {
     return (
       <div className="rounded-2xl md:rounded-3xl p-4 md:p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
@@ -60,7 +61,7 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
   const totalWins = dailyData.reduce((sum, d) => sum + d.wins, 0);
   const totalLosses = dailyData.reduce((sum, d) => sum + d.losses, 0);
   const totalBets = totalWins + totalLosses;
-  const totalProfit = dailyData.reduce((sum, d) => sum + d.profit, 0) * 100;
+  const totalProfit = dailyData.reduce((sum, d) => sum + (dailyPnL[d.date] ?? 0), 0);
 
   return (
     <div className="rounded-2xl md:rounded-3xl p-4 md:p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
@@ -85,7 +86,7 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
           {/* Overall stat badge */}
           <div className="bg-white/60 backdrop-blur-sm rounded-full px-2.5 md:px-3 py-1 md:py-1.5">
             <span className={`text-xs md:text-sm font-medium ${totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {totalProfit >= 0 ? '+' : ''}{totalProfit.toFixed(1)}% ({totalBets} bets)
+              {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(0)} ({totalBets} bets)
             </span>
           </div>
         </div>
@@ -94,7 +95,8 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
       {/* Chart area with daily win rate bars */}
       <div className="flex items-end gap-1 md:gap-2">
         {dailyData.map((day, i) => {
-          const isProfitable = day.profit >= 0;
+          const dayPnL = dailyPnL[day.date] ?? 0;
+          const isProfitable = dayPnL >= 0;
           // Bar height based on win rate (50% = baseline, scale from 0-100%)
           const barHeight = Math.max(20, day.winRate * 100);
           const winRatePercent = (day.winRate * 100).toFixed(0);
@@ -108,8 +110,8 @@ export function RecentResults({ results, loading }: RecentResultsProps) {
                 {/* Tooltip on hover */}
                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 flex flex-col items-center gap-0.5">
                   <span className="font-medium">{winRatePercent}% win rate</span>
-                  <span className={day.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                    {day.profit >= 0 ? '+' : ''}{(day.profit * 100).toFixed(1)}% profit
+                  <span className={dayPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                    {dayPnL >= 0 ? '+' : ''}${dayPnL.toFixed(0)}
                   </span>
                 </div>
                 <div
