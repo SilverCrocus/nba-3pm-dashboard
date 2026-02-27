@@ -5,6 +5,7 @@ import { useLiveScores, useLiveSignals } from '@/hooks/useLiveScores';
 import { isSweetSpot } from '@/hooks/useBetSizing';
 import { LiveHeader } from '@/components/LiveHeader';
 import { GameCard } from '@/components/GameCard';
+import { DaySummary } from '@/components/DaySummary';
 import { LiveStatusBadge } from '@/components/LiveStatusBadge';
 import { EnrichedSignal } from '@/types/database';
 
@@ -45,6 +46,12 @@ export default function LiveTracker() {
           </div>
         ) : (
           <div className="space-y-4 md:space-y-6">
+            <DaySummary
+              signals={[
+                ...gamesWithSignals.flatMap(g => g.signals),
+                ...unmatchedSignals,
+              ]}
+            />
             {gamesWithSignals.map(({ game, signals }) => (
               <GameCard key={game.gameId} game={game} signals={signals} />
             ))}
