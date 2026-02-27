@@ -45,7 +45,7 @@ export function useBetSizing(
       .reduce((sum, x) => sum + x.rawBet, 0);
 
     // Scale down if over daily risk cap
-    const maxRisk = bankroll * MAX_RISK_PCT;
+    const maxRisk = bankroll * MAX_RISK_PCT * kellyFraction;
     const scale = rawTotal > maxRisk ? maxRisk / rawTotal : 1;
 
     let totalRisk = 0;

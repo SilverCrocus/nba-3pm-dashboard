@@ -164,7 +164,7 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
 
           for (const [date, dayTrades] of dayGroups) {
             const startOfDay = bankroll;
-            const maxRisk = bankroll * MAX_RISK_PCT;
+            const maxRisk = bankroll * MAX_RISK_PCT * kellyFraction;
 
             // Compute raw bet per trade
             const sized = dayTrades.map(trade => {
