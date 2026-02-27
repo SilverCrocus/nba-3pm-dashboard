@@ -47,41 +47,50 @@ export function useSignalTransitions(signals: EnrichedSignal[]): SignalTransitio
       prevStatus.set(id, newStatus);
     }
 
-    // Apply flashes
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    // Apply flashes asynchronously to avoid cascading renders
     if (newFlashes.size > 0) {
-      setFlashes(prev => {
-        const merged = new Map(prev);
-        newFlashes.forEach((v, k) => merged.set(k, v));
-        return merged;
-      });
+      const flashEntries = [...newFlashes.entries()];
+      const flashIds = [...newFlashes.keys()];
+      timers.push(setTimeout(() => {
+        setFlashes(prev => {
+          const merged = new Map(prev);
+          flashEntries.forEach(([k, v]) => merged.set(k, v));
+          return merged;
+        });
+      }, 0));
       // Auto-clear after animation duration
-      const ids = [...newFlashes.keys()];
-      setTimeout(() => {
+      timers.push(setTimeout(() => {
         setFlashes(prev => {
           const next = new Map(prev);
-          ids.forEach(id => next.delete(id));
+          flashIds.forEach(id => next.delete(id));
           return next;
         });
-      }, FLASH_DURATION_MS);
+      }, FLASH_DURATION_MS));
     }
 
-    // Apply ticks
+    // Apply ticks asynchronously to avoid cascading renders
     if (newTicks.size > 0) {
-      setTicks(prev => {
-        const merged = new Set(prev);
-        newTicks.forEach(id => merged.add(id));
-        return merged;
-      });
+      const tickIds = [...newTicks];
+      timers.push(setTimeout(() => {
+        setTicks(prev => {
+          const merged = new Set(prev);
+          tickIds.forEach(id => merged.add(id));
+          return merged;
+        });
+      }, 0));
       // Auto-clear after animation duration
-      const ids = [...newTicks];
-      setTimeout(() => {
+      timers.push(setTimeout(() => {
         setTicks(prev => {
           const next = new Set(prev);
-          ids.forEach(id => next.delete(id));
+          tickIds.forEach(id => next.delete(id));
           return next;
         });
-      }, TICK_DURATION_MS);
+      }, TICK_DURATION_MS));
     }
+
+    return () => timers.forEach(t => clearTimeout(t));
   }, [signals]);
 
   return { flashes, ticks };

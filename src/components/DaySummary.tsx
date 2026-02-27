@@ -1,4 +1,4 @@
-import { EnrichedSignal, SignalStatus } from '@/types/database';
+import { EnrichedSignal } from '@/types/database';
 
 interface DaySummaryProps {
   signals: EnrichedSignal[];
