@@ -1,4 +1,5 @@
 import { GameWithSignals, EnrichedSignal } from '@/types/database';
+import { SignalTransitions } from '@/hooks/useSignalTransitions';
 import { isSweetSpot } from '@/hooks/useBetSizing';
 import { LiveStatusBadge } from './LiveStatusBadge';
 import { CourtStatus } from './CourtStatus';
@@ -27,7 +28,33 @@ function formatPeriod(period: number): string {
   return `OT${period - 4}`;
 }
 
-export function GameCard({ game, signals }: GameWithSignals) {
+interface GameCardProps extends GameWithSignals {
+  transitions?: SignalTransitions;
+}
+
+function getRowAnimation(signalId: string, transitions?: SignalTransitions): string {
+  if (!transitions) return '';
+  const flash = transitions.flashes.get(signalId);
+  if (flash === 'hit') return 'animate-flash-hit';
+  if (flash === 'miss') return 'animate-flash-miss';
+  return '';
+}
+
+function getTrackingPulse(signalId: string, status: string, transitions?: SignalTransitions): string {
+  if (!transitions) return '';
+  // Don't pulse if the signal is currently flashing
+  if (transitions.flashes.has(signalId)) return '';
+  if (status === 'tracking') return 'animate-tracking-pulse';
+  return '';
+}
+
+function getTickAnimation(signalId: string, transitions?: SignalTransitions): string {
+  if (!transitions) return '';
+  if (transitions.ticks.has(signalId)) return 'animate-tick-3pm';
+  return '';
+}
+
+export function GameCard({ game, signals, transitions }: GameCardProps) {
   const isScheduled = game.status === 'scheduled';
 
   return (
@@ -67,7 +94,7 @@ export function GameCard({ game, signals }: GameWithSignals) {
         {sortSignals(signals).map((s) => {
           const sweet = isSweetSpot(s.edge_pct);
           return (
-            <div key={s.signal_id} className={`bg-white/5 rounded-xl p-3 ${sweet ? '' : 'opacity-40'}`}>
+            <div key={s.signal_id} className={`bg-white/5 rounded-xl p-3 ${sweet ? '' : 'opacity-40'} ${getRowAnimation(s.signal_id, transitions)} ${getTrackingPulse(s.signal_id, s.signalStatus, transitions)}`}>
               <div className="flex justify-between items-start mb-1.5">
                 <div>
                   <p className="font-medium text-white text-sm">{s.player_name}</p>
@@ -80,7 +107,7 @@ export function GameCard({ game, signals }: GameWithSignals) {
                   {s.liveThreePointersMade !== null && (
                     <span className="text-white font-mono">
                       <span className="text-white/40">3PM: </span>
-                      <span className="text-lg font-bold">{s.liveThreePointersMade}</span>
+                      <span className={`text-lg font-bold inline-block ${getTickAnimation(s.signal_id, transitions)}`}>{s.liveThreePointersMade}</span>
                     </span>
                   )}
                   <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
@@ -113,7 +140,7 @@ export function GameCard({ game, signals }: GameWithSignals) {
           {sortSignals(signals).map((s) => {
             const sweet = isSweetSpot(s.edge_pct);
             return (
-              <tr key={s.signal_id} className={`border-b border-white/[0.04] ${sweet ? '' : 'opacity-40'}`}>
+              <tr key={s.signal_id} className={`border-b border-white/[0.04] ${sweet ? '' : 'opacity-40'} ${getRowAnimation(s.signal_id, transitions)} ${getTrackingPulse(s.signal_id, s.signalStatus, transitions)}`}>
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-white">{s.player_name}</p>
@@ -122,7 +149,7 @@ export function GameCard({ game, signals }: GameWithSignals) {
                 </td>
                 <td className="px-3 py-3 text-center">
                   {s.liveThreePointersMade !== null ? (
-                    <span className="text-white font-mono text-lg font-bold">{s.liveThreePointersMade}</span>
+                    <span className={`text-white font-mono text-lg font-bold inline-block ${getTickAnimation(s.signal_id, transitions)}`}>{s.liveThreePointersMade}</span>
                   ) : (
                     <span className="text-white/30">—</span>
                   )}
