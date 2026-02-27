@@ -1,7 +1,9 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useLatestSignals } from '@/hooks/useTrades';
 import { useLiveScores, useLiveSignals } from '@/hooks/useLiveScores';
+import { useSignalTransitions } from '@/hooks/useSignalTransitions';
 import { isSweetSpot } from '@/hooks/useBetSizing';
 import { LiveHeader } from '@/components/LiveHeader';
 import { GameCard } from '@/components/GameCard';
@@ -22,6 +24,12 @@ export default function LiveTracker() {
   const { signals, signalDate, loading: signalsLoading } = useLatestSignals();
   const { games, isLoading: scoresLoading, lastUpdated, isConnected } = useLiveScores();
   const { gamesWithSignals, unmatchedSignals } = useLiveSignals(signals, games, signalDate);
+
+  const allEnrichedSignals = useMemo(
+    () => [...gamesWithSignals.flatMap(g => g.signals), ...unmatchedSignals],
+    [gamesWithSignals, unmatchedSignals],
+  );
+  const transitions = useSignalTransitions(allEnrichedSignals);
 
   const isLoading = signalsLoading || scoresLoading;
   const hasActiveGames = games.some(g => g.status === 'live');
@@ -46,14 +54,9 @@ export default function LiveTracker() {
           </div>
         ) : (
           <div className="space-y-4 md:space-y-6">
-            <DaySummary
-              signals={[
-                ...gamesWithSignals.flatMap(g => g.signals),
-                ...unmatchedSignals,
-              ]}
-            />
+            <DaySummary signals={allEnrichedSignals} />
             {gamesWithSignals.map(({ game, signals }) => (
-              <GameCard key={game.gameId} game={game} signals={signals} />
+              <GameCard key={game.gameId} game={game} signals={signals} transitions={transitions} />
             ))}
 
             {unmatchedSignals.length > 0 && (
