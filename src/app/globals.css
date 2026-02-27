@@ -17,3 +17,39 @@ body {
     font-family: 'Space Grotesk', system-ui, sans-serif;
   }
 }
+
+@keyframes flash-hit {
+  0% { background-color: rgba(74, 222, 128, 0.15); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flash-miss {
+  0% { background-color: rgba(248, 113, 113, 0.15); }
+  100% { background-color: transparent; }
+}
+
+@keyframes tick-3pm {
+  0% { transform: scale(1); color: inherit; }
+  50% { transform: scale(1.3); color: #4ade80; }
+  100% { transform: scale(1); color: inherit; }
+}
+
+@keyframes tracking-pulse {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(74, 222, 128, 0.03); }
+}
+
+@layer utilities {
+  .animate-flash-hit {
+    animation: flash-hit 1.5s ease-out forwards;
+  }
+  .animate-flash-miss {
+    animation: flash-miss 1.5s ease-out forwards;
+  }
+  .animate-tick-3pm {
+    animation: tick-3pm 0.4s ease-out;
+  }
+  .animate-tracking-pulse {
+    animation: tracking-pulse 3s ease-in-out infinite;
+  }
+}
