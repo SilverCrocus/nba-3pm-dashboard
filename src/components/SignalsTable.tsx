@@ -9,11 +9,49 @@ interface SignalsTableProps {
   totalRisk: number;
   activeBets: number;
   kellyFraction: KellyFraction;
+  noSignalsToday?: boolean;
+  signalDate?: string | null;
 }
 
-export function SignalsTable({ signals, loading, bankroll, onBankrollChange, totalRisk, activeBets, kellyFraction }: SignalsTableProps) {
+export function SignalsTable({ signals, loading, bankroll, onBankrollChange, totalRisk, activeBets, kellyFraction, noSignalsToday, signalDate }: SignalsTableProps) {
   if (loading) {
     return <div className="text-white/50">Loading signals...</div>;
+  }
+
+  if (noSignalsToday) {
+    const fallbackDateLabel = signalDate
+      ? new Date(signalDate + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+      : null;
+
+    return (
+      <div className="bg-[rgba(38,38,45,0.6)] backdrop-blur-md border border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6">
+        <h3 className="text-lg md:text-xl font-semibold text-white mb-4">Today&apos;s Signals</h3>
+        <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-4">
+          <p className="text-white/70 text-sm font-medium">No signals today</p>
+          <p className="text-white/40 text-xs mt-1">
+            The model found no bets meeting the edge threshold. This happens when odds are well-priced.
+          </p>
+        </div>
+        {signals.length > 0 && fallbackDateLabel && (
+          <div className="mt-2">
+            <p className="text-white/30 text-xs uppercase tracking-wider mb-3">
+              Last signals — {fallbackDateLabel}
+            </p>
+            <div className="opacity-50 space-y-2">
+              {signals.slice(0, 5).map((signal) => (
+                <div key={signal.signal_id} className="flex justify-between items-center text-xs text-white/40">
+                  <span>{signal.player_name}</span>
+                  <span className="flex items-center gap-2">
+                    <span>{signal.side.toUpperCase()} {signal.line}</span>
+                    <StatusBadge outcome={signal.outcome} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (signals.length === 0) {

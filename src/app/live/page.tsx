@@ -21,7 +21,8 @@ function sortSignals(signals: EnrichedSignal[]): EnrichedSignal[] {
 }
 
 export default function LiveTracker() {
-  const { signals, signalDate, loading: signalsLoading } = useLatestSignals();
+  const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals();
+  const signals = noSignalsToday ? [] : rawSignals;
   const { games, isLoading: scoresLoading, lastUpdated, isConnected } = useLiveScores();
   const { gamesWithSignals, unmatchedSignals } = useLiveSignals(signals, games, signalDate);
 
@@ -50,7 +51,11 @@ export default function LiveTracker() {
         ) : !hasAnySignals ? (
           <div className="bg-[rgba(38,38,45,0.6)] backdrop-blur-md border border-white/[0.08] rounded-2xl md:rounded-3xl p-8 md:p-12 text-center">
             <p className="text-white/50 text-lg">No signals today</p>
-            <p className="text-white/30 text-sm mt-2">Check back when today&apos;s signals are posted</p>
+            <p className="text-white/30 text-sm mt-2">
+              {noSignalsToday
+                ? 'The model found no bets meeting the edge threshold today'
+                : 'Check back when today\u0027s signals are posted'}
+            </p>
           </div>
         ) : (
           <div className="space-y-4 md:space-y-6">

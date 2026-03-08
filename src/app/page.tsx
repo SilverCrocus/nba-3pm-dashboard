@@ -29,7 +29,7 @@ export default function Dashboard() {
     return null;
   });
 
-  const { signals: rawSignals, signalDate, loading: signalsLoading } = useLatestSignals();
+  const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals();
   const signals = usePlayerTeams(rawSignals);
   const { sizingSignals, totalRisk, activeBets } = useBetSizing(signals, bankroll, kellyFraction);
   const { stats, loading: statsLoading } = usePerformanceStats();
@@ -73,9 +73,9 @@ export default function Dashboard() {
             subtitle={stats.totalBets + ' total bets'}
           />
           <StatCard
-            title={signalDate ? new Date(signalDate + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'Bets'}
-            value={signalsLoading ? '...' : signals.length.toString()}
-            subtitle={signals.filter(s => !s.outcome).length + ' pending'}
+            title={noSignalsToday ? 'Today' : signalDate ? new Date(signalDate + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'Bets'}
+            value={signalsLoading ? '...' : noSignalsToday ? '0' : signals.length.toString()}
+            subtitle={noSignalsToday ? 'no edge found' : signals.filter(s => !s.outcome).length + ' pending'}
           />
         </div>
 
@@ -93,6 +93,8 @@ export default function Dashboard() {
               totalRisk={totalRisk}
               activeBets={activeBets}
               kellyFraction={kellyFraction}
+              noSignalsToday={noSignalsToday}
+              signalDate={signalDate}
             />
           </div>
         </div>

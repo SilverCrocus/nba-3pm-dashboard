@@ -18,6 +18,7 @@ function isActiveTrade(trade: { signal_date: string; edge_pct: number }): boolea
 export function useLatestSignals() {
   const [signals, setSignals] = useState<PaperTrade[]>([]);
   const [signalDate, setSignalDate] = useState<string | null>(null);
+  const [noSignalsToday, setNoSignalsToday] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +36,10 @@ export function useLatestSignals() {
       if (pendingDates && pendingDates.length > 0) {
         targetDate = pendingDates[0].signal_date;
       } else {
-        // No pending signals — fall back to the most recent signal date overall
+        // No pending signals — model found no qualifying bets today
+        setNoSignalsToday(true);
+
+        // Fall back to the most recent signal date overall
         const { data: latestDates } = await supabase
           .from('paper_trades')
           .select('signal_date')
@@ -67,7 +71,7 @@ export function useLatestSignals() {
     fetchLatestSignals();
   }, []);
 
-  return { signals, signalDate, loading };
+  return { signals, signalDate, noSignalsToday, loading };
 }
 
 export function usePerformanceStats() {
