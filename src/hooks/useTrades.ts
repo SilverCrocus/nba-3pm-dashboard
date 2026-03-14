@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, KellyFraction, BankrollData } from '@/types/database';
-import { getEdgeMultiplier, MAX_BET_PCT, MAX_RISK_PCT } from './useBetSizing';
-import { americanToDecimal } from '@/lib/odds';
+import { getEdgeMultiplier } from './useBetSizing';
 
 // From this date onwards, only sweet-spot trades (5-15% edge) count in stats/simulation.
 // Before this date, all trades count (user was betting on everything).
@@ -146,7 +145,7 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
   useEffect(() => {
     supabase
       .from('paper_trades')
-      .select('signal_date, outcome, profit, edge_pct, kelly_stake, odds')
+      .select('signal_date, outcome, profit, edge_pct')
       .not('outcome', 'is', null)
       .order('signal_date', { ascending: true })
       .order('created_at', { ascending: true })
@@ -162,39 +161,21 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
             dayGroups.set(trade.signal_date, group);
           }
 
+          // Use actual profit column from Supabase instead of recalculating.
+          // Python backend bets flat (1 unit per trade), so profit is in units.
+          // Convert to dollars: 1 unit = 1% of starting bankroll.
+          const unitSize = startingBankroll / 100;
           let bankroll = startingBankroll;
           const bankrollTimeSeries: BankrollData[] = [];
           const changes: Record<string, number> = {};
 
           for (const [date, dayTrades] of dayGroups) {
             const startOfDay = bankroll;
-            const maxRisk = bankroll * MAX_RISK_PCT * kellyFraction;
-
-            // Compute raw bet per trade
-            const sized = dayTrades.map(trade => {
-              const isPreCutoff = trade.signal_date < SWEET_SPOT_CUTOFF;
-              const multiplier = isPreCutoff ? 1.0 : getEdgeMultiplier(trade.edge_pct).multiplier;
-              const cappedStake = Math.min(trade.kelly_stake, MAX_BET_PCT);
-              const rawBet = bankroll * cappedStake * kellyFraction * multiplier;
-              return { trade, rawBet };
-            });
-
-            // Apply daily risk cap: scale proportionally if total exceeds limit
-            const rawTotal = sized.reduce((sum, s) => sum + s.rawBet, 0);
-            const scale = rawTotal > maxRisk ? maxRisk / rawTotal : 1;
-
-            for (const { trade, rawBet } of sized) {
-              const scaledBet = rawBet * scale;
-              const decimalOdds = americanToDecimal(trade.odds);
-
-              if (trade.outcome === 'win') {
-                bankroll += scaledBet * (decimalOdds - 1);
-              } else if (trade.outcome === 'loss') {
-                bankroll -= scaledBet;
+            for (const trade of dayTrades) {
+              if (trade.profit != null) {
+                bankroll += trade.profit * unitSize;
               }
-              // push: no change
             }
-
             bankrollTimeSeries.push({ date, bankroll });
             changes[date] = bankroll - startOfDay;
           }
