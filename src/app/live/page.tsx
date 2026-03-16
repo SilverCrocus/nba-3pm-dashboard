@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useLatestSignals } from '@/hooks/useTrades';
 import { useLiveScores, useLiveSignals } from '@/hooks/useLiveScores';
 import { useSignalTransitions } from '@/hooks/useSignalTransitions';
-import { isSweetSpot } from '@/hooks/useBetSizing';
+import { isSweetSpot } from '@/hooks/useTrades';
 import { LiveHeader } from '@/components/LiveHeader';
 import { GameCard } from '@/components/GameCard';
 import { DaySummary } from '@/components/DaySummary';

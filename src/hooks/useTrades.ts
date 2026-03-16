@@ -11,6 +11,10 @@ export function getEdgeMultiplier(edgePct: number): { multiplier: number; label:
   return { multiplier: 0.25, label: 'Caution' };
 }
 
+export function isSweetSpot(edgePct: number): boolean {
+  return getEdgeMultiplier(edgePct).multiplier > 0;
+}
+
 // From this date onwards, only sweet-spot trades (5-15% edge) count in stats/simulation.
 // Before this date, all trades count (user was betting on everything).
 const SWEET_SPOT_CUTOFF = '2026-02-24';

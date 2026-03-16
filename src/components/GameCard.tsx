@@ -1,6 +1,6 @@
 import { GameWithSignals, EnrichedSignal } from '@/types/database';
 import { SignalTransitions } from '@/hooks/useSignalTransitions';
-import { isSweetSpot } from '@/hooks/useBetSizing';
+import { isSweetSpot } from '@/hooks/useTrades';
 import { LiveStatusBadge } from './LiveStatusBadge';
 import { CourtStatus } from './CourtStatus';
 
