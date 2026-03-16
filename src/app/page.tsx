@@ -50,13 +50,8 @@ export default function Dashboard() {
           </div>
           <div className="lg:col-span-3">
             <SignalsTable
-              signals={sizingSignals}
+              signals={signals}
               loading={signalsLoading}
-              bankroll={bankroll}
-              onBankrollChange={handleBankrollChange}
-              totalRisk={totalRisk}
-              activeBets={activeBets}
-              kellyFraction={kellyFraction}
               noSignalsToday={noSignalsToday}
               signalDate={signalDate}
             />
@@ -64,7 +59,7 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Results */}
-        <RecentResults results={results} loading={resultsLoading} dailyPnL={dailyChanges} />
+        <RecentResults results={results} loading={resultsLoading} dailyPnL={dailyPnL} />
       </main>
     </div>
   );
