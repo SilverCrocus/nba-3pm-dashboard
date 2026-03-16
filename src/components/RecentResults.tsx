@@ -20,6 +20,10 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 }
 
+function formatUnits(value: number): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}u`;
+}
+
 function isToday(dateStr: string): boolean {
   const todayET = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   return dateStr === todayET;
@@ -86,7 +90,7 @@ export function RecentResults({ results, loading, dailyPnL }: RecentResultsProps
           {/* Overall stat badge */}
           <div className="bg-white/60 backdrop-blur-sm rounded-full px-2.5 md:px-3 py-1 md:py-1.5">
             <span className={`text-xs md:text-sm font-medium ${totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-              {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(0)} ({totalBets} bets)
+              {formatUnits(totalProfit)} ({totalBets} bets)
             </span>
           </div>
         </div>
@@ -111,7 +115,7 @@ export function RecentResults({ results, loading, dailyPnL }: RecentResultsProps
                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 flex flex-col items-center gap-0.5">
                   <span className="font-medium">{winRatePercent}% win rate</span>
                   <span className={dayPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                    {dayPnL >= 0 ? '+' : ''}${dayPnL.toFixed(0)}
+                    {formatUnits(dayPnL)}
                   </span>
                 </div>
                 <div

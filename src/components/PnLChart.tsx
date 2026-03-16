@@ -1,21 +1,18 @@
 'use client';
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { BankrollData, KellyFraction } from '@/types/database';
+import { PnLDataPoint } from '@/types/database';
 
 interface PnLChartProps {
-  data: BankrollData[];
-  kellyFraction: KellyFraction;
+  data: PnLDataPoint[];
   loading: boolean;
 }
 
-const kellyLabels: Record<KellyFraction, string> = {
-  1: 'Full Kelly',
-  0.5: '1/2 Kelly',
-  0.25: '1/4 Kelly',
-};
+function formatUnits(value: number): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}u`;
+}
 
-export function PnLChart({ data, kellyFraction, loading }: PnLChartProps) {
+export function PnLChart({ data, loading }: PnLChartProps) {
   if (loading) {
     return <div className="text-white/50">Loading chart...</div>;
   }
@@ -23,7 +20,7 @@ export function PnLChart({ data, kellyFraction, loading }: PnLChartProps) {
   return (
     <div className="bg-gradient-to-br from-green-600/80 to-green-800/80 rounded-2xl md:rounded-3xl p-4 md:p-6">
       <h3 className="text-lg md:text-xl font-semibold text-white mb-3 md:mb-4">
-        Bankroll Growth ({kellyLabels[kellyFraction]})
+        Equity Curve
       </h3>
       <div className="h-40 md:h-48">
         <ResponsiveContainer width="100%" height="100%">
@@ -43,8 +40,8 @@ export function PnLChart({ data, kellyFraction, loading }: PnLChartProps) {
             <YAxis
               stroke="#ffffff50"
               tick={{ fill: '#ffffff80', fontSize: 10 }}
-              tickFormatter={(value) => `$${value.toLocaleString()}`}
-              domain={['dataMin - 50', 'dataMax + 50']}
+              tickFormatter={(value) => formatUnits(value)}
+              domain={['dataMin - 0.5', 'dataMax + 0.5']}
             />
             <Tooltip
               contentStyle={{
@@ -53,11 +50,11 @@ export function PnLChart({ data, kellyFraction, loading }: PnLChartProps) {
                 borderRadius: '8px',
                 color: 'white'
               }}
-              formatter={(value) => [`$${(value as number).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, 'Bankroll']}
+              formatter={(value) => [formatUnits(value as number), 'Profit']}
             />
             <Area
               type="monotone"
-              dataKey="bankroll"
+              dataKey="cumProfit"
               stroke="#4ade80"
               strokeWidth={2}
               fill="url(#pnlGradient)"
