@@ -1,53 +1,19 @@
 'use client';
 
-import { useState } from 'react';
 import { StatCard } from '@/components/StatCard';
 import { SignalsTable } from '@/components/SignalsTable';
 import { PnLChart } from '@/components/PnLChart';
 import { RecentResults } from '@/components/RecentResults';
 import { BankBalanceCard } from '@/components/BankBalanceCard';
-import { useLatestSignals, usePerformanceStats, useRecentResults, useBankrollSimulation } from '@/hooks/useTrades';
+import { useLatestSignals, usePerformanceStats, useRecentResults, usePnL } from '@/hooks/useTrades';
 import { usePlayerTeams } from '@/hooks/useLiveScores';
-import { useBetSizing } from '@/hooks/useBetSizing';
-import { KellyFraction } from '@/types/database';
-
-const STARTING_BANKROLL = 1000;
 
 export default function Dashboard() {
-  const [kellyFraction, setKellyFraction] = useState<KellyFraction>(0.5);
-  const [bankroll, setBankroll] = useState<number | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const saved = localStorage.getItem('nba3pm_bankroll');
-      if (saved) {
-        const parsed = parseFloat(saved);
-        if (!isNaN(parsed) && parsed > 0) return parsed;
-      }
-    } catch {
-      // localStorage unavailable
-    }
-    return null;
-  });
-
   const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals();
   const signals = usePlayerTeams(rawSignals);
-  const { sizingSignals, totalRisk, activeBets } = useBetSizing(signals, bankroll, kellyFraction);
   const { stats, loading: statsLoading } = usePerformanceStats();
-  const { bankrollData, dailyChanges, currentBankroll, loading: bankrollLoading } = useBankrollSimulation(kellyFraction, STARTING_BANKROLL);
+  const { pnlData, totalProfit, dailyPnL, loading: pnlLoading } = usePnL();
   const { results, loading: resultsLoading } = useRecentResults(50);
-
-  function handleBankrollChange(value: number | null) {
-    setBankroll(value);
-    try {
-      if (value && value > 0) {
-        localStorage.setItem('nba3pm_bankroll', value.toString());
-      } else {
-        localStorage.removeItem('nba3pm_bankroll');
-      }
-    } catch {
-      // localStorage unavailable
-    }
-  }
 
   return (
     <div className="min-h-screen">
@@ -61,11 +27,9 @@ export default function Dashboard() {
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-3 md:gap-6 mb-4 md:mb-6">
           <BankBalanceCard
-            currentBankroll={currentBankroll}
-            startingBankroll={STARTING_BANKROLL}
-            kellyFraction={kellyFraction}
-            onKellyChange={setKellyFraction}
-            loading={bankrollLoading}
+            totalProfit={totalProfit}
+            totalBets={stats.totalBets}
+            loading={pnlLoading}
           />
           <StatCard
             title="Win Rate"
@@ -82,7 +46,7 @@ export default function Dashboard() {
         {/* Charts Row - stack on mobile */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6 mb-4 md:mb-6">
           <div className="lg:col-span-2">
-            <PnLChart data={bankrollData} kellyFraction={kellyFraction} loading={bankrollLoading} />
+            <PnLChart data={pnlData} loading={pnlLoading} />
           </div>
           <div className="lg:col-span-3">
             <SignalsTable

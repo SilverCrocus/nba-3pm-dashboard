@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { PaperTrade, KellyFraction, BankrollData } from '@/types/database';
-import { getEdgeMultiplier } from './useBetSizing';
+import { PaperTrade, PnLDataPoint } from '@/types/database';
+
+export function getEdgeMultiplier(edgePct: number): { multiplier: number; label: string } {
+  if (edgePct < 5) return { multiplier: 0, label: 'Skip' };
+  if (edgePct < 10) return { multiplier: 1.0, label: 'Core' };
+  if (edgePct < 25) return { multiplier: 0.5, label: 'Reduced' };
+  return { multiplier: 0.25, label: 'Caution' };
+}
 
 // From this date onwards, only sweet-spot trades (5-15% edge) count in stats/simulation.
 // Before this date, all trades count (user was betting on everything).
@@ -136,10 +142,10 @@ export function useRecentResults(limit = 10) {
   return { results, loading };
 }
 
-export function useBankrollSimulation(kellyFraction: KellyFraction, startingBankroll: number = 1000) {
-  const [bankrollData, setBankrollData] = useState<BankrollData[]>([]);
-  const [dailyChanges, setDailyChanges] = useState<Record<string, number>>({});
-  const [currentBankroll, setCurrentBankroll] = useState(startingBankroll);
+export function usePnL() {
+  const [pnlData, setPnlData] = useState<PnLDataPoint[]>([]);
+  const [dailyPnL, setDailyPnL] = useState<Record<string, number>>({});
+  const [totalProfit, setTotalProfit] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -149,6 +155,7 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
       .not('outcome', 'is', null)
       .order('signal_date', { ascending: true })
       .order('created_at', { ascending: true })
+      .limit(10000)
       .then(({ data, error }) => {
         if (!error && data) {
           const trades = data.filter(d => d.outcome !== 'voided' && isActiveTrade(d));
@@ -161,32 +168,29 @@ export function useBankrollSimulation(kellyFraction: KellyFraction, startingBank
             dayGroups.set(trade.signal_date, group);
           }
 
-          // Use actual profit column from Supabase instead of recalculating.
-          // Python backend bets flat (1 unit per trade), so profit is in units.
-          // Convert to dollars: 1 unit = 1% of starting bankroll.
-          const unitSize = startingBankroll / 100;
-          let bankroll = startingBankroll;
-          const bankrollTimeSeries: BankrollData[] = [];
+          let cumProfit = 0;
+          const timeSeries: PnLDataPoint[] = [];
           const changes: Record<string, number> = {};
 
           for (const [date, dayTrades] of dayGroups) {
-            const startOfDay = bankroll;
+            let dayProfit = 0;
             for (const trade of dayTrades) {
               if (trade.profit != null) {
-                bankroll += trade.profit * unitSize;
+                cumProfit += trade.profit;
+                dayProfit += trade.profit;
               }
             }
-            bankrollTimeSeries.push({ date, bankroll });
-            changes[date] = bankroll - startOfDay;
+            timeSeries.push({ date, cumProfit });
+            changes[date] = dayProfit;
           }
 
-          setBankrollData(bankrollTimeSeries);
-          setDailyChanges(changes);
-          setCurrentBankroll(bankroll);
+          setPnlData(timeSeries);
+          setDailyPnL(changes);
+          setTotalProfit(cumProfit);
         }
         setLoading(false);
       });
-  }, [kellyFraction, startingBankroll]);
+  }, []);
 
-  return { bankrollData, dailyChanges, currentBankroll, loading };
+  return { pnlData, totalProfit, dailyPnL, loading };
 }

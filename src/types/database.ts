@@ -20,16 +20,9 @@ export interface PaperTrade {
   created_at: string;
 }
 
-export type KellyFraction = 1 | 0.5 | 0.25;
-
-export interface SizedSignal extends PaperTrade {
-  dollarBet: number | null;
-  isSweetSpot: boolean;
-}
-
-export interface BankrollData {
+export interface PnLDataPoint {
   date: string;
-  bankroll: number;
+  cumProfit: number;
 }
 
 // Live tracker types
