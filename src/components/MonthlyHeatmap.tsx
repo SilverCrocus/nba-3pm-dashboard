@@ -118,62 +118,75 @@ export function MonthlyHeatmap({ dailyPnL, dailyRecords, loading }: HeatmapProps
 
   const dayLabels = ['Mon', '', 'Wed', '', 'Fri', '', 'Sun'];
 
+  // Calculate cell size to fill available width
+  // Card has ~p-6 (24px) padding on each side, day labels ~40px, gaps ~3px between cells
+  // We want cells to stretch to fill the card
+  const weekCount = weeks.length;
+
   return (
     <div className="bg-[rgba(38,38,45,0.6)] backdrop-blur-md border border-white/[0.08] rounded-2xl md:rounded-3xl p-4 md:p-6">
       <h3 className="text-lg md:text-xl font-semibold text-white mb-1">Monthly Returns</h3>
 
       {/* Monthly totals */}
-      <div className="flex flex-wrap gap-3 mb-3 text-xs">
+      <div className="flex flex-wrap gap-4 mb-4 text-sm">
         {Object.entries(monthlyTotals).map(([monthKey, total]) => {
           const [y, m] = monthKey.split('-');
           const monthName = new Date(Number(y), Number(m) - 1).toLocaleDateString('en-US', { month: 'short' });
           return (
-            <span key={monthKey} className={total >= 0 ? 'text-green-400' : 'text-red-400'}>
+            <span key={monthKey} className={`font-medium ${total >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {monthName}: {formatUnits(total)}
             </span>
           );
         })}
       </div>
 
-      {/* Heatmap grid */}
-      <div className="overflow-x-auto relative">
+      {/* Heatmap grid — cells stretch to fill width */}
+      <div className="relative">
         {/* Month labels row */}
-        <div className="flex ml-8 mb-1">
-          {monthLabels.map(({ month, weekIdx }, i) => (
-            <span
-              key={i}
-              className="text-[10px] text-white/40 absolute"
-              style={{ left: `${32 + weekIdx * 14}px` }}
-            >
-              {month}
-            </span>
-          ))}
+        <div className="flex pl-10 mb-1.5" style={{ gap: 0 }}>
+          {monthLabels.map(({ month, weekIdx }, i) => {
+            // Position label above the correct week column
+            const nextLabelWeek = i < monthLabels.length - 1 ? monthLabels[i + 1].weekIdx : weekCount;
+            const spanWeeks = nextLabelWeek - weekIdx;
+            return (
+              <div
+                key={i}
+                className="text-xs text-white/50"
+                style={{
+                  width: `${(spanWeeks / weekCount) * 100}%`,
+                  marginLeft: i === 0 ? `${(weekIdx / weekCount) * 100}%` : 0,
+                }}
+              >
+                {month}
+              </div>
+            );
+          })}
         </div>
 
-        <div className="flex mt-4">
+        <div className="flex">
           {/* Day-of-week labels */}
-          <div className="flex flex-col gap-[2px] mr-1 pt-0">
+          <div className="flex flex-col gap-[3px] mr-2 shrink-0">
             {dayLabels.map((label, i) => (
-              <div key={i} className="h-[10px] w-7 text-[9px] text-white/30 leading-[10px]">
+              <div key={i} className="h-5 md:h-6 w-8 text-xs text-white/40 flex items-center">
                 {label}
               </div>
             ))}
           </div>
 
-          {/* Week columns */}
-          <div className="flex gap-[2px]">
+          {/* Week columns — grow to fill available width */}
+          <div className="flex gap-[3px] flex-1">
             {weeks.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-[2px]">
+              <div key={wi} className="flex flex-col gap-[3px] flex-1">
                 {week.map((day) => (
                   <div
                     key={day.date}
-                    className={`w-[10px] h-[10px] rounded-sm cursor-pointer transition-opacity hover:opacity-80 ${
-                      day.hasBets ? getColor(day.pnl, maxAbsPnL) : 'bg-white/[0.03]'
+                    className={`w-full h-5 md:h-6 rounded cursor-pointer transition-opacity hover:opacity-80 hover:ring-1 hover:ring-white/30 ${
+                      day.hasBets ? getColor(day.pnl, maxAbsPnL) : 'bg-white/[0.04]'
                     }`}
                     onMouseEnter={(e) => {
                       if (day.hasBets) {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setTooltip({ date: day.date, x: rect.left, y: rect.top });
+                        setTooltip({ date: day.date, x: rect.left + rect.width / 2, y: rect.top });
                       }
                     }}
                     onMouseLeave={() => setTooltip(null)}
@@ -187,8 +200,8 @@ export function MonthlyHeatmap({ dailyPnL, dailyRecords, loading }: HeatmapProps
         {/* Tooltip */}
         {tooltip && dailyPnL[tooltip.date] !== undefined && (
           <div
-            className="fixed z-50 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded shadow-lg pointer-events-none"
-            style={{ left: tooltip.x - 40, top: tooltip.y - 50 }}
+            className="fixed z-50 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg pointer-events-none"
+            style={{ left: tooltip.x - 50, top: tooltip.y - 58 }}
           >
             <div className="font-medium">{tooltip.date}</div>
             <div className={dailyPnL[tooltip.date] >= 0 ? 'text-green-400' : 'text-red-400'}>
@@ -202,13 +215,13 @@ export function MonthlyHeatmap({ dailyPnL, dailyRecords, loading }: HeatmapProps
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-end gap-1 mt-3 text-[10px] text-white/40">
+      <div className="flex items-center justify-end gap-1.5 mt-4 text-xs text-white/40">
         <span>Less</span>
-        <div className="w-[10px] h-[10px] rounded-sm bg-red-600/70" />
-        <div className="w-[10px] h-[10px] rounded-sm bg-red-700/50" />
-        <div className="w-[10px] h-[10px] rounded-sm bg-white/5" />
-        <div className="w-[10px] h-[10px] rounded-sm bg-green-700/50" />
-        <div className="w-[10px] h-[10px] rounded-sm bg-green-500" />
+        <div className="w-3 h-3 rounded-sm bg-red-500" />
+        <div className="w-3 h-3 rounded-sm bg-red-600/70" />
+        <div className="w-3 h-3 rounded-sm bg-white/5" />
+        <div className="w-3 h-3 rounded-sm bg-green-700/50" />
+        <div className="w-3 h-3 rounded-sm bg-green-500" />
         <span>More</span>
       </div>
     </div>
