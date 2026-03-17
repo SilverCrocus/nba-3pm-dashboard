@@ -12,23 +12,11 @@ interface PnLChartProps {
 }
 
 const MILESTONES = [
-  { date: '2026-01-18', label: 'Paper trading starts', yOff: 2 },
-  { date: '2026-03-08', label: 'Calibration overhaul', yOff: 2 },
-  { date: '2026-03-14', label: 'CDF fix + diagnostic', yOff: 22 },
-  { date: '2026-03-16', label: 'Dual strategy live', yOff: 42 },
+  { date: '2026-01-18', label: 'Paper trading starts', color: '#60a5fa' },
+  { date: '2026-03-08', label: 'Calibration overhaul', color: '#f59e0b' },
+  { date: '2026-03-14', label: 'CDF fix + diagnostic', color: '#a78bfa' },
+  { date: '2026-03-16', label: 'Dual strategy live', color: '#34d399' },
 ];
-
-function MilestoneLabel({ viewBox, text, yOff }: any) {
-  if (!viewBox) return null;
-  const { x, y } = viewBox;
-  const w = text.length * 6 + 14;
-  return (
-    <g>
-      <rect x={x + 4} y={y + yOff} width={w} height={18} rx={4} fill="rgba(0,0,0,0.8)" stroke="rgba(255,255,255,0.25)" strokeWidth={0.5} />
-      <text x={x + 10} y={y + yOff + 13} fill="#e2e8f0" fontSize={10} fontWeight={500}>{text}</text>
-    </g>
-  );
-}
 
 function formatUnits(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}u`;
@@ -119,15 +107,15 @@ export function PnLChart({ data, loading }: PnLChartProps) {
             {/* Breakeven line */}
             <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
 
-            {/* Milestone annotations */}
+            {/* Milestone vertical lines (legend below chart) */}
             {visibleMilestones.map((m) => (
               <ReferenceLine
                 key={m.date}
                 x={m.date}
-                stroke="rgba(255,255,255,0.45)"
+                stroke={m.color}
                 strokeWidth={1.5}
-                strokeDasharray="4 3"
-                label={<MilestoneLabel text={m.label} yOff={m.yOff} />}
+                strokeDasharray="6 3"
+                strokeOpacity={0.7}
               />
             ))}
 
@@ -158,6 +146,18 @@ export function PnLChart({ data, loading }: PnLChartProps) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+      {/* Milestone legend */}
+      {visibleMilestones.length > 0 && (
+        <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-3 text-xs">
+          {visibleMilestones.map((m) => (
+            <div key={m.date} className="flex items-center gap-1.5">
+              <div className="w-4 h-0 border-t-2 border-dashed" style={{ borderColor: m.color }} />
+              <span className="text-white/70">{m.date.slice(5)}</span>
+              <span className="text-white/50">{m.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
