@@ -1,18 +1,15 @@
-import { PaperTrade } from '@/types/database';
-
 interface RecentResultsProps {
-  results: PaperTrade[];
-  loading: boolean;
   dailyPnL: Record<string, number>;
+  dailyRecords: Record<string, { wins: number; losses: number; pushes: number }>;
+  loading: boolean;
 }
 
-interface DailyAggregate {
+interface DayData {
   date: string;
+  pnl: number;
   wins: number;
   losses: number;
-  total: number;
   winRate: number;
-  profit: number;
 }
 
 function formatDate(dateStr: string): string {
@@ -29,30 +26,7 @@ function isToday(dateStr: string): boolean {
   return dateStr === todayET;
 }
 
-function aggregateByDay(results: PaperTrade[]): DailyAggregate[] {
-  const byDate: Record<string, DailyAggregate> = {};
-
-  for (const result of results) {
-    const date = result.signal_date;
-    if (!byDate[date]) {
-      byDate[date] = { date, wins: 0, losses: 0, total: 0, winRate: 0, profit: 0 };
-    }
-    byDate[date].total++;
-    if (result.outcome === 'win') byDate[date].wins++;
-    if (result.outcome === 'loss') byDate[date].losses++;
-    byDate[date].profit += result.profit || 0;
-  }
-
-  // Calculate win rates
-  for (const day of Object.values(byDate)) {
-    day.winRate = day.total > 0 ? day.wins / day.total : 0;
-  }
-
-  // Sort by date ascending and return
-  return Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
-}
-
-export function RecentResults({ results, loading, dailyPnL }: RecentResultsProps) {
+export function RecentResults({ dailyPnL, dailyRecords, loading }: RecentResultsProps) {
   if (loading) {
     return (
       <div className="rounded-2xl md:rounded-3xl p-4 md:p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
@@ -61,11 +35,27 @@ export function RecentResults({ results, loading, dailyPnL }: RecentResultsProps
     );
   }
 
-  const dailyData = aggregateByDay(results);
-  const totalWins = dailyData.reduce((sum, d) => sum + d.wins, 0);
-  const totalLosses = dailyData.reduce((sum, d) => sum + d.losses, 0);
+  // Build day data sorted by date, limited to most recent 50 days
+  const days: DayData[] = Object.keys(dailyPnL)
+    .sort()
+    .slice(-50)
+    .map(date => {
+      const record = dailyRecords[date] ?? { wins: 0, losses: 0 };
+      const total = record.wins + record.losses;
+      return {
+        date,
+        pnl: dailyPnL[date],
+        wins: record.wins,
+        losses: record.losses,
+        winRate: total > 0 ? record.wins / total : 0,
+      };
+    });
+
+  const totalWins = days.reduce((sum, d) => sum + d.wins, 0);
+  const totalLosses = days.reduce((sum, d) => sum + d.losses, 0);
   const totalBets = totalWins + totalLosses;
-  const totalProfit = dailyData.reduce((sum, d) => sum + (dailyPnL[d.date] ?? 0), 0);
+  const totalProfit = days.reduce((sum, d) => sum + d.pnl, 0);
+  const maxAbsPnL = Math.max(...days.map(d => Math.abs(d.pnl)), 1);
 
   return (
     <div className="rounded-2xl md:rounded-3xl p-4 md:p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
@@ -73,10 +63,9 @@ export function RecentResults({ results, loading, dailyPnL }: RecentResultsProps
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 md:mb-6">
         <div>
           <h3 className="text-lg md:text-xl font-semibold text-slate-900">Daily Performance</h3>
-          <p className="text-slate-600 text-xs md:text-sm">Last {dailyData.length} days</p>
+          <p className="text-slate-600 text-xs md:text-sm">Last {days.length} days</p>
         </div>
         <div className="flex items-center gap-3 md:gap-4">
-          {/* Legend - hidden on small mobile */}
           <div className="hidden sm:flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
@@ -87,7 +76,6 @@ export function RecentResults({ results, loading, dailyPnL }: RecentResultsProps
               <span className="text-slate-700 text-sm">Loss</span>
             </div>
           </div>
-          {/* Overall stat badge */}
           <div className="bg-white/60 backdrop-blur-sm rounded-full px-2.5 md:px-3 py-1 md:py-1.5">
             <span className={`text-xs md:text-sm font-medium ${totalProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
               {formatUnits(totalProfit)} ({totalBets} bets)
@@ -96,37 +84,33 @@ export function RecentResults({ results, loading, dailyPnL }: RecentResultsProps
         </div>
       </div>
 
-      {/* Chart area with daily win rate bars */}
+      {/* Chart area with daily P&L bars */}
       <div className="flex items-end gap-1 md:gap-2">
-        {dailyData.map((day, i) => {
-          const dayPnL = dailyPnL[day.date] ?? 0;
-          const isProfitable = dayPnL >= 0;
-          // Bar height based on win rate (50% = baseline, scale from 0-100%)
-          const barHeight = Math.max(20, day.winRate * 100);
+        {days.map((day, i) => {
+          const isProfitable = day.pnl >= 0;
+          // Bar height based on P&L magnitude (scale to max)
+          const barHeight = Math.max(15, (Math.abs(day.pnl) / maxAbsPnL) * 100);
           const winRatePercent = (day.winRate * 100).toFixed(0);
           return (
             <div
               key={day.date}
               className="flex-1 flex flex-col items-center group"
             >
-              {/* Bar container with fixed height */}
               <div className="h-24 md:h-32 w-full flex items-end justify-center relative">
-                {/* Tooltip on hover */}
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 flex flex-col items-center gap-0.5">
-                  <span className="font-medium">{winRatePercent}% win rate</span>
-                  <span className={dayPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                    {formatUnits(dayPnL)}
+                <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 flex flex-col items-center gap-0.5">
+                  <span className={day.pnl >= 0 ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
+                    {formatUnits(day.pnl)}
                   </span>
+                  <span className="text-white/70">{day.wins}W-{day.losses}L ({winRatePercent}%)</span>
                 </div>
                 <div
-                  className={`w-3 md:w-4 rounded-t-sm transition-all duration-200 group-hover:scale-110 group-hover:opacity-100 cursor-pointer ${isProfitable ? 'bg-emerald-500' : 'bg-orange-400'}`}
+                  className={`w-3 md:w-4 rounded-t-sm transition-all duration-200 group-hover:scale-110 cursor-pointer ${isProfitable ? 'bg-emerald-500' : 'bg-orange-400'}`}
                   style={{
                     height: `${barHeight}%`,
-                    opacity: 0.7 + (i / dailyData.length) * 0.3,
+                    opacity: 0.7 + (i / days.length) * 0.3,
                   }}
                 />
               </div>
-              {/* Date label directly under bar */}
               <div className="text-[10px] md:text-xs text-slate-600/70 mt-2 text-center">
                 {isToday(day.date) ? 'Today' : formatDate(day.date)}
               </div>
