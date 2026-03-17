@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, PnLDataPoint } from '@/types/database';
 
+// --- Legacy helpers (used by live page + GameCard) ---
+
+export function isSweetSpot(edgePct: number): boolean {
+  if (edgePct < 5) return false;
+  if (edgePct >= 25) return false;
+  return true;
+}
+
 // --- Filters ---
 
 export interface DateRange {
