@@ -58,7 +58,7 @@ export function RecentResults({ dailyPnL, dailyRecords, loading }: RecentResults
   const maxAbsPnL = Math.max(...days.map(d => Math.abs(d.pnl)), 1);
 
   return (
-    <div className="rounded-2xl md:rounded-3xl p-4 md:p-6" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
+    <div className="rounded-2xl md:rounded-3xl p-4 md:p-6 overflow-hidden" style={{ background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%)' }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4 md:mb-6">
         <div>
@@ -85,38 +85,40 @@ export function RecentResults({ dailyPnL, dailyRecords, loading }: RecentResults
       </div>
 
       {/* Chart area with daily P&L bars */}
-      <div className="flex items-end gap-1 md:gap-2">
-        {days.map((day, i) => {
-          const isProfitable = day.pnl >= 0;
-          // Bar height based on P&L magnitude (scale to max)
-          const barHeight = Math.max(15, (Math.abs(day.pnl) / maxAbsPnL) * 100);
-          const winRatePercent = (day.winRate * 100).toFixed(0);
-          return (
-            <div
-              key={day.date}
-              className="flex-1 flex flex-col items-center group"
-            >
-              <div className="h-24 md:h-32 w-full flex items-end justify-center relative">
-                <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 flex flex-col items-center gap-0.5">
-                  <span className={day.pnl >= 0 ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
-                    {formatUnits(day.pnl)}
-                  </span>
-                  <span className="text-white/70">{day.wins}W-{day.losses}L ({winRatePercent}%)</span>
+      <div className="overflow-x-auto">
+        <div className="flex items-end gap-1 md:gap-1.5" style={{ minWidth: `${days.length * 28}px` }}>
+          {days.map((day, i) => {
+            const isProfitable = day.pnl >= 0;
+            // Bar height based on P&L magnitude (scale to max)
+            const barHeight = Math.max(15, (Math.abs(day.pnl) / maxAbsPnL) * 100);
+            const winRatePercent = (day.winRate * 100).toFixed(0);
+            return (
+              <div
+                key={day.date}
+                className="flex-1 min-w-[20px] flex flex-col items-center group"
+              >
+                <div className="h-24 md:h-32 w-full flex items-end justify-center relative">
+                  <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 flex flex-col items-center gap-0.5">
+                    <span className={day.pnl >= 0 ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium'}>
+                      {formatUnits(day.pnl)}
+                    </span>
+                    <span className="text-white/70">{day.wins}W-{day.losses}L ({winRatePercent}%)</span>
+                  </div>
+                  <div
+                    className={`w-3 md:w-4 rounded-t-sm transition-all duration-200 group-hover:scale-110 cursor-pointer ${isProfitable ? 'bg-emerald-500' : 'bg-orange-400'}`}
+                    style={{
+                      height: `${barHeight}%`,
+                      opacity: 0.7 + (i / days.length) * 0.3,
+                    }}
+                  />
                 </div>
-                <div
-                  className={`w-3 md:w-4 rounded-t-sm transition-all duration-200 group-hover:scale-110 cursor-pointer ${isProfitable ? 'bg-emerald-500' : 'bg-orange-400'}`}
-                  style={{
-                    height: `${barHeight}%`,
-                    opacity: 0.7 + (i / days.length) * 0.3,
-                  }}
-                />
+                <div className="text-[10px] md:text-xs text-slate-600/70 mt-2 text-center whitespace-nowrap">
+                  {isToday(day.date) ? 'Today' : formatDate(day.date)}
+                </div>
               </div>
-              <div className="text-[10px] md:text-xs text-slate-600/70 mt-2 text-center">
-                {isToday(day.date) ? 'Today' : formatDate(day.date)}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
