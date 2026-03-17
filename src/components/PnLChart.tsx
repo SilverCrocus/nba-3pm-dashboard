@@ -12,11 +12,23 @@ interface PnLChartProps {
 }
 
 const MILESTONES = [
-  { date: '2026-01-18', label: 'Paper trading starts' },
-  { date: '2026-03-08', label: 'Calibration overhaul' },
-  { date: '2026-03-14', label: 'CDF fix + diagnostic' },
-  { date: '2026-03-16', label: 'Dual strategy live' },
+  { date: '2026-01-18', label: 'Paper trading starts', yOff: 2 },
+  { date: '2026-03-08', label: 'Calibration overhaul', yOff: 2 },
+  { date: '2026-03-14', label: 'CDF fix + diagnostic', yOff: 22 },
+  { date: '2026-03-16', label: 'Dual strategy live', yOff: 42 },
 ];
+
+function MilestoneLabel({ viewBox, text, yOff }: any) {
+  if (!viewBox) return null;
+  const { x, y } = viewBox;
+  const w = text.length * 6 + 14;
+  return (
+    <g>
+      <rect x={x + 4} y={y + yOff} width={w} height={18} rx={4} fill="rgba(0,0,0,0.8)" stroke="rgba(255,255,255,0.25)" strokeWidth={0.5} />
+      <text x={x + 10} y={y + yOff + 13} fill="#e2e8f0" fontSize={10} fontWeight={500}>{text}</text>
+    </g>
+  );
+}
 
 function formatUnits(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}u`;
@@ -112,15 +124,10 @@ export function PnLChart({ data, loading }: PnLChartProps) {
               <ReferenceLine
                 key={m.date}
                 x={m.date}
-                stroke="rgba(255,255,255,0.15)"
-                strokeDasharray="3 3"
-                label={{
-                  value: m.label,
-                  position: 'top',
-                  fill: 'rgba(255,255,255,0.4)',
-                  fontSize: 9,
-                  angle: -45,
-                }}
+                stroke="rgba(255,255,255,0.45)"
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+                label={<MilestoneLabel text={m.label} yOff={m.yOff} />}
               />
             ))}
 
