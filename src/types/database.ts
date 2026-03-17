@@ -17,6 +17,7 @@ export interface PaperTrade {
   actual: number | null;
   outcome: 'win' | 'loss' | 'push' | 'voided' | null;
   profit: number | null;
+  closing_odds: number | null;
   created_at: string;
 }
 
