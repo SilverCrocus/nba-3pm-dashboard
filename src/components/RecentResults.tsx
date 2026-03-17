@@ -84,9 +84,9 @@ export function RecentResults({ dailyPnL, dailyRecords, loading }: RecentResults
         </div>
       </div>
 
-      {/* Chart area with daily P&L bars */}
-      <div className="overflow-x-auto">
-        <div className="flex items-end gap-1 md:gap-1.5" style={{ minWidth: `${days.length * 28}px` }}>
+      {/* Chart area with daily P&L bars — horizontally scrollable */}
+      <div className="overflow-x-auto pb-2">
+        <div className="flex items-end gap-1 md:gap-1.5" style={{ minWidth: `${days.length * 48}px` }}>
           {days.map((day, i) => {
             const isProfitable = day.pnl >= 0;
             // Bar height based on P&L magnitude (scale to max)
@@ -95,7 +95,7 @@ export function RecentResults({ dailyPnL, dailyRecords, loading }: RecentResults
             return (
               <div
                 key={day.date}
-                className="flex-1 min-w-[20px] flex flex-col items-center group"
+                className="flex-1 min-w-[40px] flex flex-col items-center group"
               >
                 <div className="h-24 md:h-32 w-full flex items-end justify-center relative">
                   <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10 flex flex-col items-center gap-0.5">
