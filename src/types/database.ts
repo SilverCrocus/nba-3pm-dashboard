@@ -24,6 +24,9 @@ export interface PaperTrade {
 export interface PnLDataPoint {
   date: string;
   cumProfit: number;
+  dayPnl?: number;
+  wins?: number;
+  losses?: number;
 }
 
 // Live tracker types

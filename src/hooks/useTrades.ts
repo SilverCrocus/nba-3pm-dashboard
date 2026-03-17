@@ -210,7 +210,7 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
     maxCumProfit = Math.max(maxCumProfit, cumProfit);
     const drawdown = cumProfit - maxCumProfit;
 
-    pnlData.push({ date, cumProfit });
+    pnlData.push({ date, cumProfit, dayPnl: dayProfit, wins: dayWins, losses: dayLosses });
     dailyPnL[date] = dayProfit;
     dailyRecords[date] = { wins: dayWins, losses: dayLosses, pushes: dayPushes };
     drawdownData.push({ date, drawdown });

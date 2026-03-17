@@ -78,15 +78,30 @@ export function PnLChart({ data, loading }: PnLChartProps) {
               label={{ value: 'Profit (units)', angle: -90, position: 'insideLeft', fill: '#ffffff40', fontSize: 10 }}
             />
             <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(0,0,0,0.9)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '12px',
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0]?.payload;
+                if (!d) return null;
+                return (
+                  <div style={{
+                    backgroundColor: 'rgba(0,0,0,0.9)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                  }}>
+                    <div style={{ color: 'white', marginBottom: 4 }}>{d.date}</div>
+                    <div style={{ color: d.cumProfit >= 0 ? '#4ade80' : '#f87171', fontWeight: 500 }}>
+                      Cumulative: {formatUnits(d.cumProfit)}
+                    </div>
+                    {d.dayPnl !== undefined && (
+                      <div style={{ color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
+                        Day: {formatUnits(d.dayPnl)} · {d.wins ?? 0}W-{d.losses ?? 0}L
+                      </div>
+                    )}
+                  </div>
+                );
               }}
-              formatter={(value) => [formatUnits(Number(value ?? 0)), 'Cumulative P&L']}
-              labelFormatter={(label) => label}
             />
 
             {/* Breakeven line */}
