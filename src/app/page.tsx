@@ -75,10 +75,14 @@ export default function Dashboard() {
             badge={tradesLoading ? undefined : getSignificanceBadge(stats.settledCount)}
           />
           <StatCard
-            title="CLV %"
-            value={tradesLoading || stats.clvPct === null ? 'N/A' : `${stats.clvPct.toFixed(0)}%`}
-            subtitle="beating closing line"
-            valueColor={stats.clvPct !== null ? (stats.clvPct > 50 ? 'green' : 'red') : 'neutral'}
+            title="Expected P&L"
+            value={tradesLoading ? '...' : formatPnL(stats.totalExpectedPnL)}
+            subtitle={tradesLoading ? '' : (() => {
+              const delta = stats.totalPnL - stats.totalExpectedPnL;
+              const label = delta >= 0 ? 'Running hot' : 'Running cold';
+              return `${label}: ${formatPnL(delta)}`;
+            })()}
+            valueColor={stats.totalExpectedPnL >= 0 ? 'green' : 'red'}
           />
         </div>
 
