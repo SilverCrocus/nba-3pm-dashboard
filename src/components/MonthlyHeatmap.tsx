@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 interface HeatmapProps {
   dailyPnL: Record<string, number>;
@@ -40,6 +40,7 @@ function formatUnits(value: number): string {
 
 export function MonthlyHeatmap({ dailyPnL, dailyRecords, loading }: HeatmapProps) {
   const [tooltip, setTooltip] = useState<{ date: string; x: number; y: number } | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const { weeks, monthLabels, maxAbsPnL, monthlyTotals } = useMemo(() => {
     const dates = Object.keys(dailyPnL).sort();
@@ -141,7 +142,7 @@ export function MonthlyHeatmap({ dailyPnL, dailyRecords, loading }: HeatmapProps
       </div>
 
       {/* Heatmap grid — cells stretch to fill width */}
-      <div className="relative">
+      <div className="relative" ref={gridRef}>
         {/* Month labels row */}
         <div className="flex pl-10 mb-1.5" style={{ gap: 0 }}>
           {monthLabels.map(({ month, weekIdx }, i) => {
@@ -184,9 +185,14 @@ export function MonthlyHeatmap({ dailyPnL, dailyRecords, loading }: HeatmapProps
                       day.hasBets ? getColor(day.pnl, maxAbsPnL) : 'bg-white/[0.04]'
                     }`}
                     onMouseEnter={(e) => {
-                      if (day.hasBets) {
+                      if (day.hasBets && gridRef.current) {
                         const rect = e.currentTarget.getBoundingClientRect();
-                        setTooltip({ date: day.date, x: rect.left + rect.width / 2, y: rect.top });
+                        const containerRect = gridRef.current.getBoundingClientRect();
+                        setTooltip({
+                          date: day.date,
+                          x: rect.left - containerRect.left + rect.width / 2,
+                          y: rect.top - containerRect.top,
+                        });
                       }
                     }}
                     onMouseLeave={() => setTooltip(null)}
@@ -200,8 +206,8 @@ export function MonthlyHeatmap({ dailyPnL, dailyRecords, loading }: HeatmapProps
         {/* Tooltip */}
         {tooltip && dailyPnL[tooltip.date] !== undefined && (
           <div
-            className="fixed z-50 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg pointer-events-none"
-            style={{ left: tooltip.x - 50, top: tooltip.y - 58 }}
+            className="absolute z-50 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-lg pointer-events-none"
+            style={{ left: tooltip.x, top: tooltip.y - 8, transform: 'translate(-50%, -100%)' }}
           >
             <div className="font-medium">{tooltip.date}</div>
             <div className={dailyPnL[tooltip.date] >= 0 ? 'text-green-400' : 'text-red-400'}>
