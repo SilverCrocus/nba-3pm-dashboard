@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperTrade, PnLDataPoint } from '@/types/database';
+import { americanToDecimal } from '@/lib/odds';
 
 // --- Legacy helpers (used by live page + GameCard) ---
 
@@ -140,6 +141,7 @@ export function useStrategies() {
 
 export interface ComputedStats {
   totalPnL: number;
+  totalExpectedPnL: number;
   winRate: number;
   roi: number;
   wins: number;
@@ -167,9 +169,6 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
   const tradesWithClosing = trades.filter(t => t.closing_odds != null);
   let clvPct: number | null = null;
   if (tradesWithClosing.length > 0) {
-    const americanToDecimal = (odds: number) =>
-      odds < 0 ? 1 + 100 / Math.abs(odds) : 1 + odds / 100;
-
     const beatsClosing = tradesWithClosing.filter(t => {
       const openDec = americanToDecimal(t.odds);
       const closeDec = americanToDecimal(t.closing_odds!);
@@ -188,6 +187,7 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
 
   let cumProfit = 0;
   let maxCumProfit = 0;
+  let cumExpectedProfit = 0;
   const pnlData: PnLDataPoint[] = [];
   const dailyPnL: Record<string, number> = {};
   const dailyRecords: Record<string, { wins: number; losses: number; pushes: number }> = {};
@@ -195,6 +195,7 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
 
   for (const [date, dayTrades] of dayGroups) {
     let dayProfit = 0;
+    let dayExpectedPnL = 0;
     let dayWins = 0;
     let dayLosses = 0;
     let dayPushes = 0;
@@ -204,13 +205,20 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
       if (trade.outcome === 'win') dayWins++;
       if (trade.outcome === 'loss') dayLosses++;
       if (trade.outcome === 'push') dayPushes++;
+
+      // EV accumulation: skip pushes and null fields
+      if (trade.outcome !== 'push' && trade.model_prob != null && trade.odds != null) {
+        const dec = americanToDecimal(trade.odds);
+        dayExpectedPnL += (trade.model_prob * (dec - 1)) - (1 - trade.model_prob);
+      }
     }
 
     cumProfit += dayProfit;
+    cumExpectedProfit += dayExpectedPnL;
     maxCumProfit = Math.max(maxCumProfit, cumProfit);
     const drawdown = cumProfit - maxCumProfit;
 
-    pnlData.push({ date, cumProfit, dayPnl: dayProfit, wins: dayWins, losses: dayLosses });
+    pnlData.push({ date, cumProfit, cumExpectedProfit, dayPnl: dayProfit, wins: dayWins, losses: dayLosses });
     dailyPnL[date] = dayProfit;
     dailyRecords[date] = { wins: dayWins, losses: dayLosses, pushes: dayPushes };
     drawdownData.push({ date, drawdown });
@@ -222,6 +230,7 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
 
   return {
     totalPnL,
+    totalExpectedPnL: cumExpectedProfit,
     winRate,
     roi,
     wins,
