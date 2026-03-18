@@ -24,6 +24,7 @@ export interface PaperTrade {
 export interface PnLDataPoint {
   date: string;
   cumProfit: number;
+  cumExpectedProfit?: number;
   dayPnl?: number;
   wins?: number;
   losses?: number;
