@@ -82,7 +82,6 @@ export function PnLChart({ data, loading }: PnLChartProps) {
                 if (!active || !payload?.length) return null;
                 const d = payload[0]?.payload;
                 if (!d) return null;
-                const delta = d.cumProfit - (d.cumExpectedProfit ?? 0);
                 return (
                   <div style={{
                     backgroundColor: 'rgba(0,0,0,0.9)',
@@ -93,16 +92,10 @@ export function PnLChart({ data, loading }: PnLChartProps) {
                   }}>
                     <div style={{ color: 'white', marginBottom: 4 }}>{d.date}</div>
                     <div style={{ color: d.cumProfit >= 0 ? '#4ade80' : '#f87171', fontWeight: 500 }}>
-                      Actual: {formatUnits(d.cumProfit)}
-                    </div>
-                    <div style={{ color: 'rgba(147, 197, 253, 0.8)' }}>
-                      Expected: {formatUnits(d.cumExpectedProfit ?? 0)}
-                    </div>
-                    <div style={{ color: delta >= 0 ? '#4ade80' : '#f87171', marginTop: 2 }}>
-                      {delta >= 0 ? 'Running hot' : 'Running cold'}: {formatUnits(delta)}
+                      Cumulative: {formatUnits(d.cumProfit)}
                     </div>
                     {d.dayPnl !== undefined && (
-                      <div style={{ color: 'rgba(255,255,255,0.4)', marginTop: 2, fontSize: '11px' }}>
+                      <div style={{ color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
                         Day: {formatUnits(d.dayPnl)} · {d.wins ?? 0}W-{d.losses ?? 0}L
                       </div>
                     )}
@@ -150,16 +143,6 @@ export function PnLChart({ data, loading }: PnLChartProps) {
               strokeWidth={2}
               fill="none"
             />
-            {/* Expected P&L dashed line */}
-            <Area
-              type="monotone"
-              dataKey="cumExpectedProfit"
-              stroke="rgba(147, 197, 253, 0.5)"
-              strokeWidth={1.5}
-              strokeDasharray="6 3"
-              fill="none"
-              dot={false}
-            />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -173,10 +156,6 @@ export function PnLChart({ data, loading }: PnLChartProps) {
               <span className="text-white/50">{m.label}</span>
             </div>
           ))}
-          <div className="flex items-center gap-1.5">
-            <div className="w-4 h-0 border-t-[1.5px] border-dashed" style={{ borderColor: 'rgba(147, 197, 253, 0.5)' }} />
-            <span className="text-white/50">Expected P&L</span>
-          </div>
         </div>
       )}
     </div>

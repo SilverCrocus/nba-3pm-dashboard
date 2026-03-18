@@ -35,17 +35,6 @@ function ClvDot({ odds, closingOdds }: { odds: number; closingOdds: number | nul
   );
 }
 
-function computeEV(modelProb: number | null, odds: number | null): number | null {
-  if (modelProb == null || odds == null) return null;
-  const dec = americanToDecimal(odds);
-  return (modelProb * (dec - 1)) - (1 - modelProb);
-}
-
-function formatEV(ev: number | null): string {
-  if (ev == null) return '--';
-  return `${ev >= 0 ? '+' : ''}${ev.toFixed(2)}u`;
-}
-
 export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: SignalsTableProps) {
   if (loading) {
     return <div className="text-white/50">Loading signals...</div>;
@@ -121,15 +110,7 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
               <StatusBadge outcome={signal.outcome} />
             </div>
             <div className="flex justify-between text-xs">
-              <span className="flex items-center gap-3">
-                <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
-                {(() => {
-                  const ev = computeEV(signal.model_prob, signal.odds);
-                  return ev != null ? (
-                    <span className={ev >= 0 ? 'text-blue-400' : 'text-red-400'}>{formatEV(ev)}</span>
-                  ) : null;
-                })()}
-              </span>
+              <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
               <span className="flex items-center gap-2">
                 <ClvDot odds={signal.odds} closingOdds={signal.closing_odds} />
                 <span className="text-white/50">{signal.bookmaker}</span>
@@ -147,7 +128,6 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
             <th className="text-left pb-3">Line</th>
             <th className="text-left pb-3">Odds</th>
             <th className="text-left pb-3">Edge</th>
-            <th className="text-left pb-3">EV</th>
             <th className="text-left pb-3">Strat</th>
             <th className="text-center pb-3">CLV</th>
             <th className="text-right pb-3">Status</th>
@@ -171,16 +151,6 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
               <td className="py-3 font-mono text-white/70">{americanToDecimal(signal.odds).toFixed(2)}</td>
               <td className="py-3">
                 <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
-              </td>
-              <td className="py-3 font-mono">
-                {(() => {
-                  const ev = computeEV(signal.model_prob, signal.odds);
-                  return (
-                    <span className={ev != null && ev >= 0 ? 'text-blue-400' : ev != null ? 'text-red-400' : 'text-white/30'}>
-                      {formatEV(ev)}
-                    </span>
-                  );
-                })()}
               </td>
               <td className="py-3">
                 <StrategyPill strategy={signal.strategy} />
