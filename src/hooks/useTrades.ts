@@ -32,6 +32,7 @@ export function useLatestSignals() {
         .from('paper_trades')
         .select('signal_date')
         .is('outcome', null)
+        .eq('strategy', 'playoffs_multi_agent')
         .order('signal_date', { ascending: false })
         .limit(1);
 
@@ -44,6 +45,7 @@ export function useLatestSignals() {
         const { data: latestDates } = await supabase
           .from('paper_trades')
           .select('signal_date')
+          .eq('strategy', 'playoffs_multi_agent')
           .order('signal_date', { ascending: false })
           .limit(1);
 
@@ -61,6 +63,7 @@ export function useLatestSignals() {
         .from('paper_trades')
         .select('*')
         .eq('signal_date', targetDate)
+        .eq('strategy', 'playoffs_multi_agent')
         .order('edge_pct', { ascending: false });
 
       if (!error && data) setSignals(data);

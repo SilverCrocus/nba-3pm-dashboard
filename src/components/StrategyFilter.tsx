@@ -10,6 +10,8 @@ const STRATEGY_LABELS: Record<string, string> = {
   'unders_2.5+_5f': '5f',
   'unders_3.5+': '3.5+',
   'unders_2.5+': 'Legacy',
+  'playoffs_multi_agent': 'Multi-Agent',
+  'playoffs_llm_enhanced': 'Debate',
 };
 
 export function StrategyFilter({ strategies, selected, onSelect }: StrategyFilterProps) {

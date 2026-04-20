@@ -12,6 +12,8 @@ const STRATEGY_STYLES: Record<string, { label: string; bg: string; text: string 
   'unders_2.5+_5f': { label: '5f', bg: 'bg-blue-500/20', text: 'text-blue-400' },
   'unders_3.5+': { label: '3.5+', bg: 'bg-purple-500/20', text: 'text-purple-400' },
   'unders_2.5+': { label: 'legacy', bg: 'bg-white/10', text: 'text-white/50' },
+  'playoffs_multi_agent': { label: 'MA', bg: 'bg-green-500/20', text: 'text-green-400' },
+  'playoffs_llm_enhanced': { label: 'debate', bg: 'bg-amber-500/20', text: 'text-amber-400' },
 };
 
 function StrategyPill({ strategy }: { strategy: string }) {
