@@ -170,12 +170,12 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
   const tradesWithClosing = trades.filter(t => t.closing_odds != null);
   let clvPct: number | null = null;
   if (tradesWithClosing.length > 0) {
-    const americanToDecimal = (odds: number) =>
-      odds < 0 ? 1 + 100 / Math.abs(odds) : 1 + odds / 100;
+    const toDecimal = (odds: number) =>
+      odds > 0 && odds < 100 ? odds : odds < 0 ? 1 + 100 / Math.abs(odds) : 1 + odds / 100;
 
     const beatsClosing = tradesWithClosing.filter(t => {
-      const openDec = americanToDecimal(t.odds);
-      const closeDec = americanToDecimal(t.closing_odds!);
+      const openDec = toDecimal(t.odds);
+      const closeDec = toDecimal(t.closing_odds!);
       return openDec > closeDec; // higher decimal = better for bettor
     }).length;
     clvPct = (beatsClosing / tradesWithClosing.length) * 100;
