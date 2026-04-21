@@ -166,20 +166,25 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
   const winRate = settledCount > 0 ? wins / settledCount : 0;
   const roi = settledCount > 0 ? (totalPnL / settledCount) * 100 : 0;
 
-  // CLV: percentage of trades where opening odds beat closing odds (prefer FanDuel sharp benchmark)
-  const tradesWithClosing = trades.filter(t => t.closing_odds_fanduel != null || t.closing_odds != null);
-  let clvPct: number | null = null;
-  if (tradesWithClosing.length > 0) {
-    const toDecimal = (odds: number) =>
-      odds > 0 && odds < 100 ? odds : odds < 0 ? 1 + 100 / Math.abs(odds) : 1 + odds / 100;
+  // CLV: percentage of trades beating the sharp close (FanDuel preferred, same-book fallback)
+  // Same line → compare odds; different line → compare line movement direction
+  const toDecimal = (odds: number) =>
+    odds > 0 && odds < 100 ? odds : odds < 0 ? 1 + 100 / Math.abs(odds) : 1 + odds / 100;
 
-    const beatsClosing = tradesWithClosing.filter(t => {
-      const benchmark = t.closing_odds_fanduel ?? t.closing_odds!;
-      const openDec = toDecimal(t.odds);
-      const closeDec = toDecimal(benchmark);
-      return openDec > closeDec;
+  const tradesWithClose = trades.filter(t =>
+    (t.closing_line_fanduel != null && t.closing_odds_fanduel != null) ||
+    (t.closing_line != null && t.closing_odds != null)
+  );
+  let clvPct: number | null = null;
+  if (tradesWithClose.length > 0) {
+    const beatsClosing = tradesWithClose.filter(t => {
+      const hasFd = t.closing_line_fanduel != null && t.closing_odds_fanduel != null;
+      const closeLine = hasFd ? t.closing_line_fanduel! : t.closing_line!;
+      const closeOdds = hasFd ? t.closing_odds_fanduel! : t.closing_odds!;
+      if (closeLine === t.line) return toDecimal(t.odds) > toDecimal(closeOdds);
+      return t.side === 'under' ? closeLine < t.line : closeLine > t.line;
     }).length;
-    clvPct = (beatsClosing / tradesWithClosing.length) * 100;
+    clvPct = (beatsClosing / tradesWithClose.length) * 100;
   }
 
   // Daily aggregation for PnL chart, heatmap, and daily performance

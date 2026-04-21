@@ -18,7 +18,9 @@ export interface PaperTrade {
   outcome: 'win' | 'loss' | 'push' | 'voided' | null;
   profit: number | null;
   closing_odds: number | null;
+  closing_line: number | null;
   closing_odds_fanduel: number | null;
+  closing_line_fanduel: number | null;
   created_at: string;
 }
 
