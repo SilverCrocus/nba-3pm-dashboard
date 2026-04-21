@@ -25,12 +25,13 @@ function StrategyPill({ strategy }: { strategy: string }) {
   );
 }
 
-function ClvDot({ odds, closingOdds }: { odds: number; closingOdds: number | null }) {
-  if (closingOdds == null) {
+function ClvDot({ odds, closingOdds, closingOddsFanduel }: { odds: number; closingOdds: number | null; closingOddsFanduel: number | null }) {
+  const benchmarkOdds = closingOddsFanduel ?? closingOdds;
+  if (benchmarkOdds == null) {
     return <span className="text-white/20">&mdash;</span>;
   }
   const openDec = americanToDecimal(odds);
-  const closeDec = americanToDecimal(closingOdds);
+  const closeDec = americanToDecimal(benchmarkOdds);
   const beatsClosing = openDec > closeDec;
   return (
     <span className={`w-2 h-2 rounded-full inline-block ${beatsClosing ? 'bg-green-400' : 'bg-red-400'}`} />
@@ -114,7 +115,7 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
             <div className="flex justify-between text-xs">
               <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
               <span className="flex items-center gap-2">
-                <ClvDot odds={signal.odds} closingOdds={signal.closing_odds} />
+                <ClvDot odds={signal.odds} closingOdds={signal.closing_odds} closingOddsFanduel={signal.closing_odds_fanduel} />
                 <span className="text-white/50">{signal.bookmaker}</span>
               </span>
             </div>
@@ -158,7 +159,7 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
                 <StrategyPill strategy={signal.strategy} />
               </td>
               <td className="py-3 text-center">
-                <ClvDot odds={signal.odds} closingOdds={signal.closing_odds} />
+                <ClvDot odds={signal.odds} closingOdds={signal.closing_odds} closingOddsFanduel={signal.closing_odds_fanduel} />
               </td>
               <td className="py-3 text-right">
                 <StatusBadge outcome={signal.outcome} />

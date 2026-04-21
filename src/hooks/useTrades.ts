@@ -166,17 +166,18 @@ export function computeStats(trades: PaperTrade[]): ComputedStats {
   const winRate = settledCount > 0 ? wins / settledCount : 0;
   const roi = settledCount > 0 ? (totalPnL / settledCount) * 100 : 0;
 
-  // CLV: percentage of trades where opening odds beat closing odds
-  const tradesWithClosing = trades.filter(t => t.closing_odds != null);
+  // CLV: percentage of trades where opening odds beat closing odds (prefer FanDuel sharp benchmark)
+  const tradesWithClosing = trades.filter(t => t.closing_odds_fanduel != null || t.closing_odds != null);
   let clvPct: number | null = null;
   if (tradesWithClosing.length > 0) {
     const toDecimal = (odds: number) =>
       odds > 0 && odds < 100 ? odds : odds < 0 ? 1 + 100 / Math.abs(odds) : 1 + odds / 100;
 
     const beatsClosing = tradesWithClosing.filter(t => {
+      const benchmark = t.closing_odds_fanduel ?? t.closing_odds!;
       const openDec = toDecimal(t.odds);
-      const closeDec = toDecimal(t.closing_odds!);
-      return openDec > closeDec; // higher decimal = better for bettor
+      const closeDec = toDecimal(benchmark);
+      return openDec > closeDec;
     }).length;
     clvPct = (beatsClosing / tradesWithClosing.length) * 100;
   }
