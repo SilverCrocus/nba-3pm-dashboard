@@ -26,6 +26,17 @@ function TierBadge({ value, colorMap }: { value: string | null; colorMap: Record
   );
 }
 
+function parseVotes(raw: unknown): Array<{ role: string; vote: string }> | null {
+  if (!raw) return null;
+  try {
+    const arr = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    return arr;
+  } catch {
+    return null;
+  }
+}
+
 function VoteDots({ votes }: { votes: Array<{ role: string; vote: string }> }) {
   return (
     <div className="flex items-center gap-0.5 mt-1.5" title={votes.map(v => `${v.role}: ${v.vote}`).join(', ')}>
@@ -97,9 +108,10 @@ function PipelineDetail({ signal }: { signal: PaperTrade }) {
               <span className={`text-xs font-mono font-medium ${confirmColor}`}>{confirmCount}/13 confirm</span>
             )}
           </div>
-          {signal.adversarial_votes && signal.adversarial_votes.length > 0 && (
-            <VoteDots votes={signal.adversarial_votes} />
-          )}
+          {(() => {
+            const votes = parseVotes(signal.adversarial_votes);
+            return votes && <VoteDots votes={votes} />;
+          })()}
         </div>
         <div className="bg-white/[0.03] rounded-lg p-3">
           <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Scenario</p>
