@@ -220,10 +220,13 @@ function ClvDot({ signal }: { signal: PaperTrade }) {
 }
 
 function ClvDetail({ signal }: { signal: PaperTrade }) {
+  if (signal.closing_line_fanduel == null || signal.closing_odds_fanduel == null) {
+    return null;
+  }
   const side = signal.side === 'under' ? 'U' : 'O';
   return (
     <span className="text-[10px] text-white/35 font-mono">
-      {side} {signal.closing_line_fanduel} @ {americanToDecimal(signal.closing_odds_fanduel!).toFixed(2)}
+      {side} {signal.closing_line_fanduel} @ {americanToDecimal(signal.closing_odds_fanduel).toFixed(2)}
     </span>
   );
 }
