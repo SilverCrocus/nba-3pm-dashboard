@@ -41,13 +41,27 @@ function ClvDot({ signal }: { signal: PaperTrade }) {
   const closeOdds = hasFd ? fdOdds : sbOdds!;
   const isUnder = signal.side === 'under';
 
+  const betOdds = americanToDecimal(signal.odds);
+  const closingOdds = americanToDecimal(closeOdds);
+
   let beatsClosing: boolean;
+  let isNeutral = false;
+
   if (closeLine === signal.line) {
-    beatsClosing = americanToDecimal(signal.odds) > americanToDecimal(closeOdds);
+    if (Math.abs(betOdds - closingOdds) < 0.01) {
+      isNeutral = true;
+      beatsClosing = false;
+    } else {
+      beatsClosing = betOdds > closingOdds;
+    }
   } else if (isUnder) {
     beatsClosing = closeLine < signal.line;
   } else {
     beatsClosing = closeLine > signal.line;
+  }
+
+  if (isNeutral) {
+    return <span className="text-white/40">&mdash;</span>;
   }
 
   return (
