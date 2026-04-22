@@ -1,3 +1,6 @@
+'use client';
+
+import { Fragment, useState } from 'react';
 import { PaperTrade } from '@/types/database';
 import { americanToDecimal } from '@/lib/odds';
 
@@ -6,6 +9,153 @@ interface SignalsTableProps {
   loading: boolean;
   noSignalsToday?: boolean;
   signalDate?: string | null;
+}
+
+function hasReasoningData(signal: PaperTrade): boolean {
+  return signal.strategy === 'playoffs_multi_agent' || signal.strategy === 'playoffs_llm_enhanced';
+}
+
+function TierBadge({ value, colorMap }: { value: string | null; colorMap: Record<string, string> }) {
+  if (!value) return <span className="text-white/30">--</span>;
+  const upper = value.toUpperCase();
+  const color = colorMap[upper] ?? 'text-white/50 bg-white/10';
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${color}`}>
+      {upper}
+    </span>
+  );
+}
+
+function VoteDots({ votes }: { votes: Array<{ role: string; vote: string }> }) {
+  return (
+    <div className="flex items-center gap-0.5 mt-1.5" title={votes.map(v => `${v.role}: ${v.vote}`).join(', ')}>
+      {votes.map((v, i) => (
+        <span
+          key={i}
+          className={`w-1.5 h-1.5 rounded-full ${v.vote === 'CONFIRM' ? 'bg-green-400' : 'bg-red-400'}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max).trimEnd() + '...';
+}
+
+function PipelineDetail({ signal }: { signal: PaperTrade }) {
+  const isMultiAgent = signal.strategy === 'playoffs_multi_agent';
+  const isDebate = signal.strategy === 'playoffs_llm_enhanced';
+
+  const hasMultiAgentData = signal.screening_tier != null || signal.adversarial_verdict != null ||
+    signal.scenario_prob_under != null || signal.portfolio_stake != null;
+  const hasDebateData = signal.debate_verdict != null || signal.debate_confirm_count != null ||
+    signal.debate_summary != null;
+
+  if ((isMultiAgent && !hasMultiAgentData) || (isDebate && !hasDebateData)) {
+    return (
+      <div className="bg-white/[0.03] rounded-lg p-3 text-xs text-white/40">
+        No pipeline data available
+      </div>
+    );
+  }
+
+  if (isMultiAgent) {
+    const screeningColors: Record<string, string> = {
+      'PROCEED': 'text-green-400 bg-green-500/20',
+      'ESCALATE': 'text-amber-400 bg-amber-500/20',
+    };
+    const debateColors: Record<string, string> = {
+      'PASS': 'text-green-400 bg-green-500/20',
+      'CAUTION': 'text-amber-400 bg-amber-500/20',
+    };
+
+    const confirmCount = signal.adversarial_confirm_count;
+    const confirmColor = confirmCount != null
+      ? confirmCount >= 10 ? 'text-green-400' : confirmCount >= 7 ? 'text-amber-400' : 'text-red-400'
+      : 'text-white/40';
+
+    const scenarioProb = signal.scenario_prob_under;
+    const scenarioColor = scenarioProb != null
+      ? scenarioProb > 0.55 ? 'text-green-400' : scenarioProb >= 0.50 ? 'text-amber-400' : 'text-red-400'
+      : 'text-white/40';
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="bg-white/[0.03] rounded-lg p-3">
+          <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Screening</p>
+          <div className="flex items-center gap-2">
+            <TierBadge value={signal.screening_tier} colorMap={screeningColors} />
+          </div>
+        </div>
+        <div className="bg-white/[0.03] rounded-lg p-3">
+          <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Debate</p>
+          <div className="flex items-center gap-2">
+            <TierBadge value={signal.adversarial_verdict} colorMap={debateColors} />
+            {confirmCount != null && (
+              <span className={`text-xs font-mono font-medium ${confirmColor}`}>{confirmCount}/13 confirm</span>
+            )}
+          </div>
+          {signal.adversarial_votes && signal.adversarial_votes.length > 0 && (
+            <VoteDots votes={signal.adversarial_votes} />
+          )}
+        </div>
+        <div className="bg-white/[0.03] rounded-lg p-3">
+          <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Scenario</p>
+          {scenarioProb != null ? (
+            <span className={`text-sm font-mono font-medium ${scenarioColor}`}>
+              {(scenarioProb * 100).toFixed(1)}% under probability
+            </span>
+          ) : (
+            <span className="text-white/30 text-xs">--</span>
+          )}
+        </div>
+        <div className="bg-white/[0.03] rounded-lg p-3">
+          <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Portfolio</p>
+          {signal.portfolio_stake != null ? (
+            <span className="text-sm font-mono font-medium text-white/80">
+              {signal.portfolio_stake.toFixed(1)}% stake
+            </span>
+          ) : (
+            <span className="text-white/30 text-xs">--</span>
+          )}
+          {signal.pipeline_cost_usd != null && (
+            <span className="text-[11px] text-white/40 ml-2">${signal.pipeline_cost_usd.toFixed(2)} cost</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isDebate) {
+    const verdictColors: Record<string, string> = {
+      'CONFIRM': 'text-green-400 bg-green-500/20',
+      'CAUTION': 'text-amber-400 bg-amber-500/20',
+      'SKIP': 'text-red-400 bg-red-500/20',
+    };
+    const confirmCount = signal.debate_confirm_count;
+    const confirmColor = confirmCount != null
+      ? confirmCount >= 5 ? 'text-green-400' : confirmCount >= 3 ? 'text-amber-400' : 'text-red-400'
+      : 'text-white/40';
+
+    return (
+      <div className="bg-white/[0.03] rounded-lg p-3">
+        <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Debate Verdict</p>
+        <div className="flex items-center gap-2 mb-1.5">
+          <TierBadge value={signal.debate_verdict} colorMap={verdictColors} />
+          {confirmCount != null && (
+            <span className={`text-xs font-mono font-medium ${confirmColor}`}>{confirmCount}/6 confirm</span>
+          )}
+        </div>
+        {signal.debate_summary && (
+          <p className="text-[11px] text-white/50 leading-snug">{truncate(signal.debate_summary, 120)}</p>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 }
 
 const STRATEGY_STYLES: Record<string, { label: string; bg: string; text: string }> = {
@@ -69,7 +219,22 @@ function ClvDot({ signal }: { signal: PaperTrade }) {
   );
 }
 
+function ClvDetail({ signal }: { signal: PaperTrade }) {
+  const side = signal.side === 'under' ? 'U' : 'O';
+  return (
+    <span className="text-[10px] text-white/35 font-mono">
+      {side} {signal.closing_line_fanduel} @ {americanToDecimal(signal.closing_odds_fanduel!).toFixed(2)}
+    </span>
+  );
+}
+
 export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: SignalsTableProps) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleExpand = (signalId: string) => {
+    setExpandedId(prev => prev === signalId ? null : signalId);
+  };
+
   if (loading) {
     return <div className="text-white/50">Loading signals...</div>;
   }
@@ -128,30 +293,54 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
 
       {/* Mobile: Cards */}
       <div className="md:hidden space-y-3">
-        {signals.map((signal) => (
-          <div key={signal.signal_id} className="bg-white/5 rounded-xl p-3">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-white text-sm">{signal.player_name}</p>
-                  {signal.team && (
-                    <span className="text-[10px] text-white/50 font-medium">{signal.team}</span>
-                  )}
-                  <StrategyPill strategy={signal.strategy} />
+        {signals.map((signal) => {
+          const canExpand = hasReasoningData(signal);
+          const isExpanded = expandedId === signal.signal_id;
+
+          return (
+            <div key={signal.signal_id} className="bg-white/5 rounded-xl p-3">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-white text-sm">{signal.player_name}</p>
+                    {signal.team && (
+                      <span className="text-[10px] text-white/50 font-medium">{signal.team}</span>
+                    )}
+                    <StrategyPill strategy={signal.strategy} />
+                  </div>
+                  <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} @ {americanToDecimal(signal.odds).toFixed(2)}</p>
                 </div>
-                <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} @ {americanToDecimal(signal.odds).toFixed(2)}</p>
+                <StatusBadge outcome={signal.outcome} />
               </div>
-              <StatusBadge outcome={signal.outcome} />
+              <div className="flex justify-between text-xs">
+                <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
+                <span className="flex items-center gap-1.5">
+                  <ClvDot signal={signal} />
+                  <ClvDetail signal={signal} />
+                  <span className="text-white/50">{signal.bookmaker}</span>
+                </span>
+              </div>
+              {canExpand && (
+                <>
+                  <button
+                    onClick={() => toggleExpand(signal.signal_id)}
+                    className="mt-2 text-[11px] text-white/40 hover:text-white/60 transition-colors"
+                  >
+                    {isExpanded ? 'Hide pipeline ▾' : 'View pipeline ▸'}
+                  </button>
+                  <div
+                    className="overflow-hidden transition-all duration-200 ease-in-out"
+                    style={{ maxHeight: isExpanded ? '400px' : '0px', opacity: isExpanded ? 1 : 0 }}
+                  >
+                    <div className="mt-2">
+                      <PipelineDetail signal={signal} />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
-              <span className="flex items-center gap-2">
-                <ClvDot signal={signal} />
-                <span className="text-white/50">{signal.bookmaker}</span>
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Desktop: Table */}
@@ -168,35 +357,60 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
           </tr>
         </thead>
         <tbody className="text-white/80">
-          {signals.map((signal) => (
-            <tr key={signal.signal_id} className="border-b border-white/5">
-              <td className="py-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-white">{signal.player_name}</p>
-                    {signal.team && (
-                      <span className="text-xs text-white/40 font-medium">{signal.team}</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line}</p>
-                </div>
-              </td>
-              <td className="py-3 font-mono text-white/70">{signal.line}</td>
-              <td className="py-3 font-mono text-white/70">{americanToDecimal(signal.odds).toFixed(2)}</td>
-              <td className="py-3">
-                <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
-              </td>
-              <td className="py-3">
-                <StrategyPill strategy={signal.strategy} />
-              </td>
-              <td className="py-3 text-center">
-                <ClvDot signal={signal} />
-              </td>
-              <td className="py-3 text-right">
-                <StatusBadge outcome={signal.outcome} />
-              </td>
-            </tr>
-          ))}
+          {signals.map((signal) => {
+            const canExpand = hasReasoningData(signal);
+            const isExpanded = expandedId === signal.signal_id;
+
+            return (
+              <Fragment key={signal.signal_id}>
+                <tr
+                  className={`border-b border-white/5 ${canExpand ? 'cursor-pointer hover:bg-white/[0.02]' : ''}`}
+                  onClick={canExpand ? () => toggleExpand(signal.signal_id) : undefined}
+                >
+                  <td className="py-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white">{signal.player_name}</p>
+                        {signal.team && (
+                          <span className="text-xs text-white/40 font-medium">{signal.team}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 font-mono text-white/70">{signal.line}</td>
+                  <td className="py-3 font-mono text-white/70">{americanToDecimal(signal.odds).toFixed(2)}</td>
+                  <td className="py-3">
+                    <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
+                  </td>
+                  <td className="py-3">
+                    <span className="flex items-center gap-1">
+                      <StrategyPill strategy={signal.strategy} />
+                      {canExpand && (
+                        <span className="text-[10px] text-white/30">{isExpanded ? '▾' : '▸'}</span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="py-3 text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <ClvDot signal={signal} />
+                      <ClvDetail signal={signal} />
+                    </div>
+                  </td>
+                  <td className="py-3 text-right">
+                    <StatusBadge outcome={signal.outcome} />
+                  </td>
+                </tr>
+                {canExpand && isExpanded && (
+                  <tr className="border-b border-white/5">
+                    <td colSpan={7} className="py-3 pl-4 border-l-2 border-green-500/30">
+                      <PipelineDetail signal={signal} />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>

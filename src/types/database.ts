@@ -21,6 +21,17 @@ export interface PaperTrade {
   closing_line: number | null;
   closing_odds_fanduel: number | null;
   closing_line_fanduel: number | null;
+  screening_tier: string | null;
+  screening_haiku_decision: string | null;
+  adversarial_verdict: string | null;
+  adversarial_confirm_count: number | null;
+  adversarial_votes: Array<{ role: string; vote: string }> | null;
+  scenario_prob_under: number | null;
+  portfolio_stake: number | null;
+  pipeline_cost_usd: number | null;
+  debate_verdict: string | null;
+  debate_confirm_count: number | null;
+  debate_summary: string | null;
   created_at: string;
 }
 
