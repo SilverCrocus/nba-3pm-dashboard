@@ -16,6 +16,7 @@ const MILESTONES = [
   { date: '2026-03-08', label: 'Calibration overhaul', color: '#f59e0b' },
   { date: '2026-03-14', label: 'CDF fix + diagnostic', color: '#a78bfa' },
   { date: '2026-03-16', label: 'Dual strategy live', color: '#34d399' },
+  { date: '2026-04-19', label: 'Multi-agent live', color: '#f97316' },
 ];
 
 function formatUnits(value: number): string {

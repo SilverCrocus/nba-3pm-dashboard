@@ -22,7 +22,7 @@ type DatePreset = '7d' | '30d' | 'season' | 'all';
 
 export default function Dashboard() {
   // Filter state
-  const [strategy, setStrategy] = useState<string | null>(null);
+  const [strategy, setStrategy] = useState<string | null>('playoffs_multi_agent');
   const [datePreset, setDatePreset] = useState<DatePreset>('all');
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
