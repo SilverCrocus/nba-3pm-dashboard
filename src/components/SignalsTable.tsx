@@ -37,14 +37,22 @@ function parseVotes(raw: unknown): Array<{ role: string; vote: string }> | null 
   }
 }
 
-function VoteDots({ votes }: { votes: Array<{ role: string; vote: string }> }) {
+function VoteDots({ votes }: { votes: Array<{ role: string; vote?: string; p_under?: number; model_id?: string }> }) {
+  const dotColor = (v: { p_under?: number; vote?: string }) => {
+    if (v.p_under != null) {
+      if (v.p_under >= 0.55) return 'bg-green-400';
+      if (v.p_under <= 0.45) return 'bg-red-400';
+      return 'bg-amber-400';
+    }
+    return v.vote === 'CONFIRM' ? 'bg-green-400' : 'bg-red-400';
+  };
+  const tooltip = votes.map(v =>
+    v.p_under != null ? `${v.role}: P(u)=${(v.p_under * 100).toFixed(0)}%` : `${v.role}: ${v.vote}`
+  ).join(', ');
   return (
-    <div className="flex items-center gap-0.5 mt-1.5" title={votes.map(v => `${v.role}: ${v.vote}`).join(', ')}>
+    <div className="flex items-center gap-0.5 mt-1.5" title={tooltip}>
       {votes.map((v, i) => (
-        <span
-          key={i}
-          className={`w-1.5 h-1.5 rounded-full ${v.vote === 'CONFIRM' ? 'bg-green-400' : 'bg-red-400'}`}
-        />
+        <span key={i} className={`w-1.5 h-1.5 rounded-full ${dotColor(v)}`} />
       ))}
     </div>
   );
@@ -82,9 +90,10 @@ function PipelineDetail({ signal }: { signal: PaperTrade }) {
       'CAUTION': 'text-amber-400 bg-amber-500/20',
     };
 
-    const confirmCount = signal.adversarial_confirm_count;
-    const confirmColor = confirmCount != null
-      ? confirmCount >= 10 ? 'text-green-400' : confirmCount >= 7 ? 'text-amber-400' : 'text-red-400'
+    const agentCount = signal.adversarial_confirm_count;
+    const aggPUnder = signal.adversarial_weighted_confirm;
+    const aggColor = aggPUnder != null
+      ? aggPUnder >= 0.55 ? 'text-green-400' : aggPUnder >= 0.50 ? 'text-amber-400' : 'text-red-400'
       : 'text-white/40';
 
     const scenarioProb = signal.scenario_prob_under;
@@ -101,11 +110,14 @@ function PipelineDetail({ signal }: { signal: PaperTrade }) {
           </div>
         </div>
         <div className="bg-white/[0.03] rounded-lg p-3">
-          <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Debate</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">7-Agent Tri-Model Debate</p>
           <div className="flex items-center gap-2">
             <TierBadge value={signal.adversarial_verdict} colorMap={debateColors} />
-            {confirmCount != null && (
-              <span className={`text-xs font-mono font-medium ${confirmColor}`}>{confirmCount}/13 confirm</span>
+            {aggPUnder != null && (
+              <span className={`text-xs font-mono font-medium ${aggColor}`}>P(u) {(aggPUnder * 100).toFixed(1)}%</span>
+            )}
+            {agentCount != null && (
+              <span className="text-[11px] text-white/40">{agentCount}/7 agents</span>
             )}
           </div>
           {(() => {
@@ -125,12 +137,9 @@ function PipelineDetail({ signal }: { signal: PaperTrade }) {
         </div>
         <div className="bg-white/[0.03] rounded-lg p-3">
           <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1.5">Portfolio</p>
-          {signal.portfolio_stake != null ? (
-            <span className="text-sm font-mono font-medium text-white/80">
-              {signal.portfolio_stake.toFixed(1)}% stake
-            </span>
-          ) : (
-            <span className="text-white/30 text-xs">--</span>
+          <span className="text-sm font-mono font-medium text-white/80">1.0u flat</span>
+          {signal.portfolio_stake != null && (
+            <span className="text-[11px] text-white/40 ml-2">(Kelly: {signal.portfolio_stake.toFixed(2)}u)</span>
           )}
           {signal.pipeline_cost_usd != null && (
             <span className="text-[11px] text-white/40 ml-2">${signal.pipeline_cost_usd.toFixed(2)} cost</span>

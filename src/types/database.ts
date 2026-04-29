@@ -25,7 +25,8 @@ export interface PaperTrade {
   screening_haiku_decision: string | null;
   adversarial_verdict: string | null;
   adversarial_confirm_count: number | null;
-  adversarial_votes: Array<{ role: string; vote: string }> | null;
+  adversarial_weighted_confirm: number | null;
+  adversarial_votes: Array<{ role: string; vote?: string; p_under?: number; model_id?: string }> | null;
   scenario_prob_under: number | null;
   portfolio_stake: number | null;
   pipeline_cost_usd: number | null;
