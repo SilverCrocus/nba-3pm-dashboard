@@ -3,6 +3,7 @@
 import { Fragment, useState } from 'react';
 import { PaperTrade } from '@/types/database';
 import { americanToDecimal } from '@/lib/odds';
+import { computeClvImpliedPct, classifyClvTier } from '@/lib/clv';
 
 interface SignalsTableProps {
   signals: PaperTrade[];
@@ -197,46 +198,20 @@ function StrategyPill({ strategy }: { strategy: string }) {
 }
 
 function ClvDot({ signal }: { signal: PaperTrade }) {
-  const fdLine = signal.closing_line_fanduel;
-  const fdOdds = signal.closing_odds_fanduel;
-  const sbLine = signal.closing_line;
-  const sbOdds = signal.closing_odds;
-
-  const hasFd = fdLine != null && fdOdds != null;
-  const hasSb = sbLine != null && sbOdds != null;
-  if (!hasFd && !hasSb) {
+  if (signal.closing_odds_fanduel == null) {
     return <span className="text-white/20">&mdash;</span>;
   }
 
-  const closeLine = hasFd ? fdLine : sbLine!;
-  const closeOdds = hasFd ? fdOdds : sbOdds!;
-  const isUnder = signal.side === 'under';
+  const entryOdds = americanToDecimal(signal.odds);
+  const closingOdds = americanToDecimal(signal.closing_odds_fanduel);
+  const clvPct = computeClvImpliedPct(entryOdds, closingOdds);
+  const tier = classifyClvTier(clvPct);
 
-  const betOdds = americanToDecimal(signal.odds);
-  const closingOdds = americanToDecimal(closeOdds);
-
-  let beatsClosing: boolean;
-  let isNeutral = false;
-
-  if (closeLine === signal.line) {
-    if (Math.abs(betOdds - closingOdds) < 0.01) {
-      isNeutral = true;
-      beatsClosing = false;
-    } else {
-      beatsClosing = betOdds > closingOdds;
-    }
-  } else if (isUnder) {
-    beatsClosing = closeLine < signal.line;
-  } else {
-    beatsClosing = closeLine > signal.line;
-  }
-
-  if (isNeutral) {
-    return <span className="text-white/40">&mdash;</span>;
-  }
+  const dotColor = tier === 'green' ? 'bg-green-400' : tier === 'red' ? 'bg-red-400' : 'bg-white/30';
+  const tooltip = `${clvPct >= 0 ? '+' : ''}${clvPct.toFixed(1)}%`;
 
   return (
-    <span className={`w-2 h-2 rounded-full inline-block ${beatsClosing ? 'bg-green-400' : 'bg-red-400'}`} />
+    <span className={`w-2 h-2 rounded-full inline-block ${dotColor}`} title={tooltip} />
   );
 }
 

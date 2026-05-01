@@ -75,10 +75,11 @@ export default function Dashboard() {
             badge={tradesLoading ? undefined : getSignificanceBadge(stats.settledCount)}
           />
           <StatCard
-            title="CLV %"
-            value={tradesLoading || stats.clvPct === null ? 'N/A' : `${stats.clvPct.toFixed(0)}%`}
-            subtitle="beating closing line"
-            valueColor={stats.clvPct !== null ? (stats.clvPct > 50 ? 'green' : 'red') : 'neutral'}
+            title="Mean CLV"
+            value={tradesLoading || stats.clvMeanPct === null ? 'N/A' : `${stats.clvMeanPct >= 0 ? '+' : ''}${stats.clvMeanPct.toFixed(1)}%`}
+            subtitle={stats.clvBeatingPct !== null ? `beating close: ${stats.clvBeatingPct.toFixed(0)}%` : undefined}
+            valueColor={stats.clvMeanPct !== null ? (stats.clvMeanPct > 0 ? 'green' : 'red') : 'neutral'}
+            badge={stats.clvSignificant ? { color: 'green', label: 'Sig.', tooltip: 'Statistically significant CLV (p < 0.05)' } : undefined}
           />
         </div>
 
