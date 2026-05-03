@@ -12,6 +12,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   'unders_2.5+': 'Legacy',
   'playoffs_multi_agent': 'Multi-Agent',
   'playoffs_llm_enhanced': 'Debate',
+  'assists_multi_agent': 'Assists MA',
 };
 
 export function StrategyFilter({ strategies, selected, onSelect }: StrategyFilterProps) {

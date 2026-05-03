@@ -21,6 +21,7 @@ export interface PaperTrade {
   closing_line: number | null;
   closing_odds_fanduel: number | null;
   closing_line_fanduel: number | null;
+  prop_type: 'threes' | 'assists' | null;
   screening_tier: string | null;
   screening_haiku_decision: string | null;
   adversarial_verdict: string | null;

@@ -31,9 +31,9 @@ export interface DateRange {
   start: string;
 }
 
-// --- useLatestSignals: ALWAYS unfiltered, shows latest date ---
+// --- useLatestSignals: shows latest date, with optional prop_type filter ---
 
-export function useLatestSignals() {
+export function useLatestSignals(propType?: string | null) {
   const [signals, setSignals] = useState<PaperTrade[]>([]);
   const [signalDate, setSignalDate] = useState<string | null>(null);
   const [noSignalsToday, setNoSignalsToday] = useState(false);
@@ -41,13 +41,26 @@ export function useLatestSignals() {
 
   useEffect(() => {
     async function fetchLatestSignals() {
-      const { data: pendingDates } = await supabase
+      let pendingQuery = supabase
         .from('paper_trades')
         .select('signal_date')
         .is('outcome', null)
-        .eq('strategy', 'playoffs_multi_agent')
         .order('signal_date', { ascending: false })
         .limit(1);
+
+      if (propType === 'threes') {
+        pendingQuery = pendingQuery
+          .eq('strategy', 'playoffs_multi_agent')
+          .or('prop_type.is.null,prop_type.eq.threes');
+      } else if (propType === 'assists') {
+        pendingQuery = pendingQuery
+          .eq('strategy', 'assists_multi_agent')
+          .eq('prop_type', 'assists');
+      } else {
+        pendingQuery = pendingQuery.in('strategy', ['playoffs_multi_agent', 'assists_multi_agent']);
+      }
+
+      const { data: pendingDates } = await pendingQuery;
 
       let targetDate: string | null = null;
 
@@ -55,12 +68,25 @@ export function useLatestSignals() {
         targetDate = pendingDates[0].signal_date;
       } else {
         setNoSignalsToday(true);
-        const { data: latestDates } = await supabase
+        let latestQuery = supabase
           .from('paper_trades')
           .select('signal_date')
-          .eq('strategy', 'playoffs_multi_agent')
           .order('signal_date', { ascending: false })
           .limit(1);
+
+        if (propType === 'threes') {
+          latestQuery = latestQuery
+            .eq('strategy', 'playoffs_multi_agent')
+            .or('prop_type.is.null,prop_type.eq.threes');
+        } else if (propType === 'assists') {
+          latestQuery = latestQuery
+            .eq('strategy', 'assists_multi_agent')
+            .eq('prop_type', 'assists');
+        } else {
+          latestQuery = latestQuery.in('strategy', ['playoffs_multi_agent', 'assists_multi_agent']);
+        }
+
+        const { data: latestDates } = await latestQuery;
 
         if (latestDates && latestDates.length > 0) {
           targetDate = latestDates[0].signal_date;
@@ -72,20 +98,32 @@ export function useLatestSignals() {
         return;
       }
 
-      const { data, error } = await supabase
+      let signalsQuery = supabase
         .from('paper_trades')
         .select('*')
         .eq('signal_date', targetDate)
-        .eq('strategy', 'playoffs_multi_agent')
         .order('edge_pct', { ascending: false });
 
+      if (propType === 'threes') {
+        signalsQuery = signalsQuery
+          .eq('strategy', 'playoffs_multi_agent')
+          .or('prop_type.is.null,prop_type.eq.threes');
+      } else if (propType === 'assists') {
+        signalsQuery = signalsQuery
+          .eq('strategy', 'assists_multi_agent')
+          .eq('prop_type', 'assists');
+      } else {
+        signalsQuery = signalsQuery.in('strategy', ['playoffs_multi_agent', 'assists_multi_agent']);
+      }
+
+      const { data, error } = await signalsQuery;
       if (!error && data) setSignals(data);
       setSignalDate(targetDate);
       setLoading(false);
     }
 
     fetchLatestSignals();
-  }, []);
+  }, [propType]);
 
   return { signals, signalDate, noSignalsToday, loading };
 }
@@ -93,7 +131,7 @@ export function useLatestSignals() {
 // --- useSettledTrades: raw settled trades with strategy/date filtering ---
 // Feeds: heatmap, drawdown, daily performance, KPI cards
 
-export function useSettledTrades(strategy?: string, dateRange?: DateRange | null) {
+export function useSettledTrades(strategy?: string, dateRange?: DateRange | null, propType?: string | null) {
   const [trades, setTrades] = useState<PaperTrade[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -115,6 +153,11 @@ export function useSettledTrades(strategy?: string, dateRange?: DateRange | null
       if (dateRange?.start) {
         query = query.gte('signal_date', dateRange.start);
       }
+      if (propType === 'threes') {
+        query = query.or('prop_type.is.null,prop_type.eq.threes');
+      } else if (propType === 'assists') {
+        query = query.eq('prop_type', 'assists');
+      }
 
       const { data, error } = await query;
       if (!error && data) setTrades(data);
@@ -122,7 +165,7 @@ export function useSettledTrades(strategy?: string, dateRange?: DateRange | null
     }
 
     fetchTrades();
-  }, [strategy, dateRange?.start]);
+  }, [strategy, dateRange?.start, propType]);
 
   return { trades, loading };
 }

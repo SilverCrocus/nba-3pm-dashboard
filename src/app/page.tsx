@@ -8,6 +8,7 @@ import { DrawdownChart } from '@/components/DrawdownChart';
 import { MonthlyHeatmap } from '@/components/MonthlyHeatmap';
 import { RecentResults } from '@/components/RecentResults';
 import { StrategyFilter } from '@/components/StrategyFilter';
+import { PropTypeFilter } from '@/components/PropTypeFilter';
 import { DateRangeFilter } from '@/components/DateRangeFilter';
 import {
   useLatestSignals,
@@ -23,14 +24,15 @@ type DatePreset = '7d' | '30d' | 'season' | 'all';
 export default function Dashboard() {
   // Filter state
   const [strategy, setStrategy] = useState<string | null>('playoffs_multi_agent');
+  const [propType, setPropType] = useState<string | null>(null);
   const [datePreset, setDatePreset] = useState<DatePreset>('all');
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
 
   // Data hooks
-  const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals();
+  const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals(propType);
   const signals = usePlayerTeams(rawSignals);
   const strategies = useStrategies();
-  const { trades, loading: tradesLoading } = useSettledTrades(strategy ?? undefined, dateRange);
+  const { trades, loading: tradesLoading } = useSettledTrades(strategy ?? undefined, dateRange, propType);
 
   // Compute all stats from settled trades
   const stats = useMemo(() => computeStats(trades), [trades]);
@@ -48,12 +50,18 @@ export default function Dashboard() {
           <p className="text-white/50 text-sm md:text-base">Track bets and maximize edge</p>
         </div>
 
-        {/* Strategy Filter */}
-        <StrategyFilter
-          strategies={strategies}
-          selected={strategy}
-          onSelect={setStrategy}
-        />
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-4">
+          <StrategyFilter
+            strategies={strategies}
+            selected={strategy}
+            onSelect={setStrategy}
+          />
+          <PropTypeFilter
+            selected={propType}
+            onSelect={setPropType}
+          />
+        </div>
 
         {/* KPI Cards — 4 columns */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
