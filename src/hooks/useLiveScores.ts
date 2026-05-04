@@ -118,7 +118,12 @@ function normalizePlayerName(name: string): string {
 
 function deriveSignalStatus(gameStatus: GameStatus, side: 'over' | 'under', line: number, fg3m: number): SignalStatus {
   if (gameStatus === 'scheduled') return 'scheduled';
-  if (gameStatus === 'live') return 'tracking';
+
+  if (gameStatus === 'live') {
+    if (side === 'under' && fg3m > line) return 'miss';
+    if (side === 'over' && fg3m > line) return 'hit';
+    return 'tracking';
+  }
 
   // Game is final — determine outcome
   if (side === 'over') {

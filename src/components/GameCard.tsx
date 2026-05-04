@@ -112,11 +112,7 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
                   )}
                   <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
                 </div>
-                {sweet ? (
-                  <span className="text-green-400 font-medium">+{s.edge_pct.toFixed(1)}%</span>
-                ) : (
-                  <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-white/50 text-[10px] font-medium">TRACKING ONLY</span>
-                )}
+                <span className={`font-medium ${sweet ? 'text-green-400' : 'text-white/50 text-[10px]'}`}>+{s.edge_pct.toFixed(1)}%</span>
               </div>
             </div>
           );
@@ -161,11 +157,7 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
                   </span>
                 </td>
                 <td className="px-3 py-3 text-center">
-                  {sweet ? (
-                    <span className="text-green-400 font-medium text-sm">+{s.edge_pct.toFixed(1)}%</span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/50 text-[10px] font-medium">TRACKING ONLY</span>
-                  )}
+                  <span className={`font-medium ${sweet ? 'text-green-400 text-sm' : 'text-white/50 text-xs'}`}>+{s.edge_pct.toFixed(1)}%</span>
                 </td>
                 <td className="px-3 py-3 text-center">
                   <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
