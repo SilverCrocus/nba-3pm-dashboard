@@ -92,13 +92,12 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
       {/* Signal Rows - Mobile */}
       <div className="md:hidden p-3 space-y-2">
         {sortSignals(signals).map((s) => {
-          const sweet = isSweetSpot(s.edge_pct);
           return (
-            <div key={s.signal_id} className={`bg-white/5 rounded-xl p-3 ${sweet ? '' : 'opacity-40'} ${getRowAnimation(s.signal_id, transitions)} ${getTrackingPulse(s.signal_id, s.signalStatus, transitions)}`}>
+            <div key={s.signal_id} className={`bg-white/5 rounded-xl p-3 ${getRowAnimation(s.signal_id, transitions)} ${getTrackingPulse(s.signal_id, s.signalStatus, transitions)}`}>
               <div className="flex justify-between items-start mb-1.5">
                 <div>
                   <p className="font-medium text-white text-sm">{s.player_name}</p>
-                  <p className="text-xs text-white/40">{s.side.toUpperCase()} {s.line}</p>
+                  <p className="text-xs text-white/40">{s.side.toUpperCase()} {s.line} <span className={s.prop_type === 'assists' ? 'text-teal-400' : 'text-blue-400'}>{s.prop_type === 'assists' ? 'AST' : '3PM'}</span></p>
                 </div>
                 <LiveStatusBadge status={s.signalStatus} />
               </div>
@@ -112,7 +111,7 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
                   )}
                   <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
                 </div>
-                <span className={`font-medium ${sweet ? 'text-green-400' : 'text-white/50 text-[10px]'}`}>+{s.edge_pct.toFixed(1)}%</span>
+                <span className="text-green-400 font-medium">+{s.edge_pct.toFixed(1)}%</span>
               </div>
             </div>
           );
@@ -134,9 +133,8 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
         </thead>
         <tbody>
           {sortSignals(signals).map((s) => {
-            const sweet = isSweetSpot(s.edge_pct);
             return (
-              <tr key={s.signal_id} className={`border-b border-white/[0.04] ${sweet ? '' : 'opacity-40'} ${getRowAnimation(s.signal_id, transitions)} ${getTrackingPulse(s.signal_id, s.signalStatus, transitions)}`}>
+              <tr key={s.signal_id} className={`border-b border-white/[0.04] ${getRowAnimation(s.signal_id, transitions)} ${getTrackingPulse(s.signal_id, s.signalStatus, transitions)}`}>
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-white">{s.player_name}</p>
@@ -150,14 +148,16 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
                     <span className="text-white/30">—</span>
                   )}
                 </td>
-                <td className="px-3 py-3 text-center text-white/70 font-mono">{s.line}</td>
+                <td className="px-3 py-3 text-center text-white/70 font-mono">
+                  {s.line} <span className={`text-xs font-medium ${s.prop_type === 'assists' ? 'text-teal-400' : 'text-blue-400'}`}>{s.prop_type === 'assists' ? 'AST' : '3PM'}</span>
+                </td>
                 <td className="px-3 py-3 text-center">
                   <span className={`text-xs font-medium ${s.side === 'over' ? 'text-green-400' : 'text-red-400'}`}>
                     {s.side.toUpperCase()}
                   </span>
                 </td>
                 <td className="px-3 py-3 text-center">
-                  <span className={`font-medium ${sweet ? 'text-green-400 text-sm' : 'text-white/50 text-xs'}`}>+{s.edge_pct.toFixed(1)}%</span>
+                  <span className="text-green-400 font-medium text-sm">+{s.edge_pct.toFixed(1)}%</span>
                 </td>
                 <td className="px-3 py-3 text-center">
                   <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
