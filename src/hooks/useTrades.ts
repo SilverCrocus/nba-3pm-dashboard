@@ -149,6 +149,8 @@ export function useSettledTrades(strategy?: string, dateRange?: DateRange | null
 
       if (strategy) {
         query = query.eq('strategy', strategy);
+      } else {
+        query = query.in('strategy', ['playoffs_multi_agent', 'assists_multi_agent']);
       }
       if (dateRange?.start) {
         query = query.gte('signal_date', dateRange.start);
