@@ -13,7 +13,14 @@ interface SignalsTableProps {
 }
 
 function hasReasoningData(signal: PaperTrade): boolean {
-  return signal.strategy === 'playoffs_multi_agent' || signal.strategy === 'playoffs_llm_enhanced';
+  return signal.strategy === 'playoffs_multi_agent' || signal.strategy === 'playoffs_llm_enhanced' || signal.strategy === 'assists_multi_agent';
+}
+
+function propLabel(signal: PaperTrade): string {
+  if (signal.prop_type === 'assists') return 'AST';
+  if (signal.prop_type === 'threes') return '3PM';
+  if (signal.strategy === 'assists_multi_agent') return 'AST';
+  return '3PM';
 }
 
 function TierBadge({ value, colorMap }: { value: string | null; colorMap: Record<string, string> }) {
@@ -65,7 +72,7 @@ function truncate(text: string, max: number): string {
 }
 
 function PipelineDetail({ signal }: { signal: PaperTrade }) {
-  const isMultiAgent = signal.strategy === 'playoffs_multi_agent';
+  const isMultiAgent = signal.strategy === 'playoffs_multi_agent' || signal.strategy === 'assists_multi_agent';
   const isDebate = signal.strategy === 'playoffs_llm_enhanced';
 
   const hasMultiAgentData = signal.screening_tier != null || signal.adversarial_verdict != null ||
@@ -185,6 +192,7 @@ const STRATEGY_STYLES: Record<string, { label: string; bg: string; text: string 
   'unders_3.5+': { label: '3.5+', bg: 'bg-purple-500/20', text: 'text-purple-400' },
   'unders_2.5+': { label: 'legacy', bg: 'bg-white/10', text: 'text-white/50' },
   'playoffs_multi_agent': { label: 'MA', bg: 'bg-green-500/20', text: 'text-green-400' },
+  'assists_multi_agent': { label: 'AST', bg: 'bg-teal-500/20', text: 'text-teal-400' },
   'playoffs_llm_enhanced': { label: 'debate', bg: 'bg-amber-500/20', text: 'text-amber-400' },
 };
 
@@ -265,7 +273,7 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
                     <StrategyPill strategy={signal.strategy} />
                   </span>
                   <span className="flex items-center gap-2">
-                    <span>{signal.side.toUpperCase()} {signal.line}</span>
+                    <span>{signal.side.toUpperCase()} {signal.line} {propLabel(signal)}</span>
                     <StatusBadge outcome={signal.outcome} />
                   </span>
                 </div>
@@ -307,7 +315,7 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
                     )}
                     <StrategyPill strategy={signal.strategy} />
                   </div>
-                  <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} @ {americanToDecimal(signal.odds).toFixed(2)}</p>
+                  <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} {propLabel(signal)} @ {americanToDecimal(signal.odds).toFixed(2)}</p>
                 </div>
                 <StatusBadge outcome={signal.outcome} />
               </div>
@@ -374,10 +382,10 @@ export function SignalsTable({ signals, loading, noSignalsToday, signalDate }: S
                           <span className="text-xs text-white/40 font-medium">{signal.team}</span>
                         )}
                       </div>
-                      <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line}</p>
+                      <p className="text-xs text-white/40">{signal.side.toUpperCase()} {signal.line} {propLabel(signal)}</p>
                     </div>
                   </td>
-                  <td className="py-3 font-mono text-white/70">{signal.line}</td>
+                  <td className="py-3 font-mono text-white/70">{signal.line} <span className="text-white/40 text-xs">{propLabel(signal)}</span></td>
                   <td className="py-3 font-mono text-white/70">{americanToDecimal(signal.odds).toFixed(2)}</td>
                   <td className="py-3">
                     <span className="text-green-400 font-medium">+{signal.edge_pct.toFixed(1)}%</span>
