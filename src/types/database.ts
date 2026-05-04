@@ -56,6 +56,7 @@ export interface LivePlayer {
   playerName: string;
   teamTricode: string;
   threePointersMade: number;
+  assists: number;
   isOnCourt: boolean;
   minutes: string;
 }
@@ -78,6 +79,7 @@ export interface LiveScoresResponse {
 
 export interface EnrichedSignal extends PaperTrade {
   liveThreePointersMade: number | null;
+  liveAssists: number | null;
   isOnCourt: boolean | null;
   minutesPlayed: string | null;
   signalStatus: SignalStatus;

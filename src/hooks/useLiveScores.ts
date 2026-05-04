@@ -182,14 +182,15 @@ export function useLiveSignals(signals: PaperTrade[], games: LiveGame[], signalD
 
       if (match) {
         const { game, player: p } = match;
+        const liveStat = signal.prop_type === 'assists' ? p.assists : p.threePointersMade;
         const enriched: EnrichedSignal = {
           ...signal,
-          // Backfill team from NBA API if signal has no team
           team: (signal.team && signal.team.trim()) ? signal.team : p.teamTricode,
           liveThreePointersMade: p.threePointersMade,
+          liveAssists: p.assists,
           isOnCourt: p.isOnCourt,
           minutesPlayed: p.minutes,
-          signalStatus: deriveSignalStatus(game.status, signal.side, signal.line, p.threePointersMade),
+          signalStatus: deriveSignalStatus(game.status, signal.side, signal.line, liveStat),
         };
         const key = game.gameId;
         if (!gameSignalsMap.has(key)) {
@@ -201,6 +202,7 @@ export function useLiveSignals(signals: PaperTrade[], games: LiveGame[], signalD
         unmatchedSignals.push({
           ...signal,
           liveThreePointersMade: null,
+          liveAssists: null,
           isOnCourt: null,
           minutesPlayed: null,
           signalStatus: 'scheduled',

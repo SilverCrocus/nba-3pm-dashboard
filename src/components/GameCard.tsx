@@ -105,8 +105,8 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
                 <div className="flex items-center gap-3">
                   {s.liveThreePointersMade !== null && (
                     <span className="text-white font-mono">
-                      <span className="text-white/40">3PM: </span>
-                      <span className={`text-lg font-bold inline-block ${getTickAnimation(s.signal_id, transitions)}`}>{s.liveThreePointersMade}</span>
+                      <span className="text-white/40">{s.prop_type === 'assists' ? 'AST' : '3PM'}: </span>
+                      <span className={`text-lg font-bold inline-block ${getTickAnimation(s.signal_id, transitions)}`}>{s.prop_type === 'assists' ? s.liveAssists : s.liveThreePointersMade}</span>
                     </span>
                   )}
                   <CourtStatus isOnCourt={s.isOnCourt} minutes={s.minutesPlayed} />
@@ -123,7 +123,7 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
         <thead>
           <tr className="text-white/40 text-xs uppercase tracking-wider border-b border-white/[0.06]">
             <th className="text-left px-6 py-2.5">Player</th>
-            <th className="text-center px-3 py-2.5">3PM</th>
+            <th className="text-center px-3 py-2.5">Stat</th>
             <th className="text-center px-3 py-2.5">Line</th>
             <th className="text-center px-3 py-2.5">Side</th>
             <th className="text-center px-3 py-2.5">Edge</th>
@@ -143,7 +143,7 @@ export function GameCard({ game, signals, transitions }: GameCardProps) {
                 </td>
                 <td className="px-3 py-3 text-center">
                   {s.liveThreePointersMade !== null ? (
-                    <span className={`text-white font-mono text-lg font-bold inline-block ${getTickAnimation(s.signal_id, transitions)}`}>{s.liveThreePointersMade}</span>
+                    <span className={`text-white font-mono text-lg font-bold inline-block ${getTickAnimation(s.signal_id, transitions)}`}>{s.prop_type === 'assists' ? s.liveAssists : s.liveThreePointersMade}</span>
                   ) : (
                     <span className="text-white/30">—</span>
                   )}

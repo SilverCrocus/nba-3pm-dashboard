@@ -35,13 +35,14 @@ export function useSignalTransitions(signals: EnrichedSignal[]): SignalTransitio
         newFlashes.set(id, newStatus);
       }
 
-      // Detect 3PM tick: value increased
-      if (signal.liveThreePointersMade !== null) {
-        const old3PM = prev3PM.get(id);
-        if (old3PM !== undefined && signal.liveThreePointersMade > old3PM) {
+      // Detect stat tick: value increased (3PM or assists depending on prop type)
+      const liveStat = signal.prop_type === 'assists' ? signal.liveAssists : signal.liveThreePointersMade;
+      if (liveStat !== null) {
+        const oldStat = prev3PM.get(id);
+        if (oldStat !== undefined && liveStat > oldStat) {
           newTicks.add(id);
         }
-        prev3PM.set(id, signal.liveThreePointersMade);
+        prev3PM.set(id, liveStat);
       }
 
       prevStatus.set(id, newStatus);

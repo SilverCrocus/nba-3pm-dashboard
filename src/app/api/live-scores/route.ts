@@ -44,6 +44,7 @@ function extractPlayers(teamData: any): LivePlayer[] {
     playerName: `${p.firstName} ${p.familyName}`,
     teamTricode: teamData.teamTricode,
     threePointersMade: p.statistics?.threePointersMade ?? 0,
+    assists: p.statistics?.assists ?? 0,
     isOnCourt: p.oncourt === '1',
     minutes: parseMinutes(p.statistics?.minutes ?? ''),
   }));
