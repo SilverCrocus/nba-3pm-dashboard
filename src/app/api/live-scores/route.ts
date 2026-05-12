@@ -5,6 +5,12 @@ const SCOREBOARD_URL = 'https://cdn.nba.com/static/json/liveData/scoreboard/toda
 const BOXSCORE_URL = (gameId: string) =>
   `https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`;
 
+const CDN_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+  'Referer': 'https://www.nba.com/',
+  'Accept': 'application/json',
+};
+
 // In-memory cache
 let cachedResponse: { data: { games: LiveGame[]; timestamp: string }; fetchedAt: number } | null = null;
 const CACHE_TTL_MS = 10_000;
@@ -52,7 +58,10 @@ function extractPlayers(teamData: any): LivePlayer[] {
 
 async function fetchLiveScores(): Promise<{ games: LiveGame[]; timestamp: string }> {
   // Fetch scoreboard
-  const scoreboardRes = await fetch(SCOREBOARD_URL, { next: { revalidate: 0 } });
+  const scoreboardRes = await fetch(SCOREBOARD_URL, {
+    next: { revalidate: 0 },
+    headers: CDN_HEADERS,
+  });
   if (!scoreboardRes.ok) {
     throw new Error(`Scoreboard fetch failed: ${scoreboardRes.status}`);
   }
@@ -67,7 +76,10 @@ async function fetchLiveScores(): Promise<{ games: LiveGame[]; timestamp: string
 
     if (status !== 'scheduled') {
       try {
-        const boxRes = await fetch(BOXSCORE_URL(g.gameId), { next: { revalidate: 0 } });
+        const boxRes = await fetch(BOXSCORE_URL(g.gameId), {
+          next: { revalidate: 0 },
+          headers: CDN_HEADERS,
+        });
         if (boxRes.ok) {
           const boxData = await boxRes.json();
           const home = boxData?.game?.homeTeam;
