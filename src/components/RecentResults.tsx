@@ -84,12 +84,11 @@ export function RecentResults({ dailyPnL, dailyRecords, loading }: RecentResults
         </div>
       </div>
 
-      {/* Chart area with daily P&L bars — horizontally scrollable */}
-      <div className="overflow-x-auto pb-2">
+      {/* Chart area with daily P&L bars — horizontally scrollable with tooltip room */}
+      <div className="overflow-x-auto pb-2 pt-14">
         <div className="flex items-end gap-1 md:gap-1.5" style={{ minWidth: `${days.length * 48}px` }}>
           {days.map((day, i) => {
             const isProfitable = day.pnl >= 0;
-            // Bar height based on P&L magnitude (scale to max)
             const barHeight = Math.max(15, (Math.abs(day.pnl) / maxAbsPnL) * 100);
             const winRatePercent = (day.winRate * 100).toFixed(0);
             return (

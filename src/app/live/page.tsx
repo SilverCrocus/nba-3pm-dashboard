@@ -21,7 +21,7 @@ function sortSignals(signals: EnrichedSignal[]): EnrichedSignal[] {
 }
 
 export default function LiveTracker() {
-  const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals();
+  const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals('playoffs', 'all');
   const signals = noSignalsToday ? [] : rawSignals;
   const { games, isLoading: scoresLoading, lastUpdated, isConnected } = useLiveScores();
   const { gamesWithSignals, unmatchedSignals } = useLiveSignals(signals, games, signalDate);

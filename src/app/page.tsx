@@ -7,32 +7,24 @@ import { PnLChart } from '@/components/PnLChart';
 import { DrawdownChart } from '@/components/DrawdownChart';
 import { MonthlyHeatmap } from '@/components/MonthlyHeatmap';
 import { RecentResults } from '@/components/RecentResults';
-import { StrategyFilter } from '@/components/StrategyFilter';
-import { PropTypeFilter } from '@/components/PropTypeFilter';
-import { DateRangeFilter } from '@/components/DateRangeFilter';
+import { SeasonTabs } from '@/components/SeasonTabs';
 import {
   useLatestSignals,
   useSettledTrades,
-  useStrategies,
   computeStats,
-  DateRange,
+  Phase,
+  SubTab,
 } from '@/hooks/useTrades';
 import { usePlayerTeams } from '@/hooks/useLiveScores';
 
-type DatePreset = '7d' | '30d' | 'season' | 'all';
-
 export default function Dashboard() {
-  // Filter state
-  const [strategy, setStrategy] = useState<string | null>(null);
-  const [propType, setPropType] = useState<string | null>(null);
-  const [datePreset, setDatePreset] = useState<DatePreset>('all');
-  const [dateRange, setDateRange] = useState<DateRange | null>(null);
+  const [phase, setPhase] = useState<Phase>('playoffs');
+  const [subTab, setSubTab] = useState<SubTab>('all');
 
   // Data hooks
-  const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals(propType);
+  const { signals: rawSignals, signalDate, noSignalsToday, loading: signalsLoading } = useLatestSignals(phase, subTab);
   const signals = usePlayerTeams(rawSignals);
-  const strategies = useStrategies();
-  const { trades, loading: tradesLoading } = useSettledTrades(strategy ?? undefined, dateRange, propType);
+  const { trades, loading: tradesLoading } = useSettledTrades(phase, subTab);
 
   // Compute all stats from settled trades
   const stats = useMemo(() => computeStats(trades), [trades]);
@@ -50,18 +42,13 @@ export default function Dashboard() {
           <p className="text-white/50 text-sm md:text-base">Track bets and maximize edge</p>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4">
-          <StrategyFilter
-            strategies={strategies}
-            selected={strategy}
-            onSelect={setStrategy}
-          />
-          <PropTypeFilter
-            selected={propType}
-            onSelect={setPropType}
-          />
-        </div>
+        {/* Season Tabs */}
+        <SeasonTabs
+          phase={phase}
+          subTab={subTab}
+          onPhaseChange={setPhase}
+          onSubTabChange={setSubTab}
+        />
 
         {/* KPI Cards — 4 columns */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
@@ -88,17 +75,6 @@ export default function Dashboard() {
             subtitle={stats.clvBeatingPct !== null ? `beating close: ${stats.clvBeatingPct.toFixed(0)}%` : undefined}
             valueColor={stats.clvMeanPct !== null ? (stats.clvMeanPct > 0 ? 'green' : 'red') : 'neutral'}
             badge={stats.clvSignificant ? { color: 'green', label: 'Sig.', tooltip: 'Statistically significant CLV (p < 0.05)' } : undefined}
-          />
-        </div>
-
-        {/* Date Range Filter */}
-        <div className="flex justify-end mb-3">
-          <DateRangeFilter
-            selected={datePreset}
-            onSelect={(preset, range) => {
-              setDatePreset(preset);
-              setDateRange(range);
-            }}
           />
         </div>
 
@@ -134,13 +110,15 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Today's Signals (unfiltered) */}
-        <SignalsTable
-          signals={signals}
-          loading={signalsLoading}
-          noSignalsToday={noSignalsToday}
-          signalDate={signalDate}
-        />
+        {/* Signals (only shown in Playoffs) */}
+        {phase === 'playoffs' && (
+          <SignalsTable
+            signals={signals}
+            loading={signalsLoading}
+            noSignalsToday={noSignalsToday}
+            signalDate={signalDate}
+          />
+        )}
       </main>
     </div>
   );
