@@ -56,6 +56,7 @@ export function useLatestSignals(phase: Phase, subTab: SubTab) {
         .from('paper_trades')
         .select('signal_date')
         .is('outcome', null)
+        .neq('strategy', 'playoffs_llm_enhanced')
         .gte('signal_date', PLAYOFF_START)
         .order('signal_date', { ascending: false })
         .limit(1);
@@ -77,6 +78,7 @@ export function useLatestSignals(phase: Phase, subTab: SubTab) {
         let latestQuery = supabase
           .from('paper_trades')
           .select('signal_date')
+          .neq('strategy', 'playoffs_llm_enhanced')
           .gte('signal_date', PLAYOFF_START)
           .order('signal_date', { ascending: false })
           .limit(1);
@@ -103,6 +105,7 @@ export function useLatestSignals(phase: Phase, subTab: SubTab) {
         .from('paper_trades')
         .select('*')
         .eq('signal_date', targetDate)
+        .neq('strategy', 'playoffs_llm_enhanced')
         .gte('signal_date', PLAYOFF_START)
         .order('edge_pct', { ascending: false });
 
@@ -139,6 +142,7 @@ export function useSettledTrades(phase: Phase, subTab: SubTab) {
         .select('*')
         .not('outcome', 'is', null)
         .neq('outcome', 'voided')
+        .neq('strategy', 'playoffs_llm_enhanced')
         .order('signal_date', { ascending: true })
         .order('created_at', { ascending: true })
         .limit(10000);
